@@ -36,6 +36,9 @@ class AgentVote:
     factors: list[str] = field(default_factory=list)
     dissent: Optional[str] = None  # if they disagree, why specifically
 
+    def __repr__(self) -> str:
+        return f"AgentVote(agent_name={self.agent_name}, position={self.position}, confidence={self.confidence})"
+
 
 @dataclass
 class Decision:
@@ -50,6 +53,16 @@ class Decision:
     dissenting_views: list[str] = field(default_factory=list)
     duration_seconds: float = 0.0
     timestamp: float = field(default_factory=time.time)
+
+    def __repr__(self) -> str:
+        return (
+            "Decision("
+            f"department={self.department}, "
+            f"outcome={self.outcome}, "
+            f"position={self.position}, "
+            f"confidence={self.confidence:.2f}"
+            ")"
+        )
 
     def to_dict(self) -> dict:
         return {
