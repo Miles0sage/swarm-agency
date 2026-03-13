@@ -30,8 +30,9 @@ def format_agent_prompt(agent: AgentConfig, request: AgencyRequest) -> str:
         f"You are the **{agent.role}** with expertise in {agent.expertise}.",
         f"Your analytical bias: {agent.bias}",
         "",
+        "Your `position` MUST be exactly one of: YES, NO, or MAYBE.",
         "Analyze this from your perspective and respond with ONLY valid JSON:",
-        '{"position": "your stance (1-3 words)", "confidence": 0.0-1.0, "reasoning": "2-3 sentences", "factors": ["factor1", "factor2"], "dissent": "if you disagree with likely consensus, explain why"}',
+        '{"position": "YES | NO | MAYBE", "confidence": 0.0-1.0, "reasoning": "2-3 sentences", "factors": ["factor1", "factor2"], "dissent": "if you disagree with likely consensus, explain why"}',
     ])
     return "\n".join(lines)
 

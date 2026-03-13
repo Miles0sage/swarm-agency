@@ -34,6 +34,22 @@ class TestTally:
             name="Test", agents=[_agent(f"a{i}") for i in range(5)],
         )
 
+    @pytest.mark.parametrize(
+        ("raw_position", "expected"),
+        [
+            ("YES", "YES"),
+            ("go for it", "YES"),
+            ("APPROVE", "YES"),
+            ("REJECT", "NO"),
+            ("NO, OPERATIONAL OVERLOAD", "NO"),
+            ("PROCEED WITH CAUTION", "MAYBE"),
+            ("STRATEGIC REJECTION", "NO"),
+            ("needs more data", "MAYBE"),
+        ],
+    )
+    def test_normalize_position(self, raw_position, expected):
+        assert self.dept._normalize_position(raw_position) == expected
+
     def test_consensus_all_agree(self):
         votes = [_vote("YES", 0.9, f"a{i}") for i in range(5)]
         outcome, pos, conf, summary, dissents = self.dept._tally(votes)

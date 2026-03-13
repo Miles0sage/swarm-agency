@@ -52,6 +52,49 @@ class Department:
             duration_seconds=round(duration, 2),
         )
 
+    def _normalize_position(self, position: str) -> str:
+        """Map freeform agent positions to YES/NO/MAYBE."""
+        normalized = (position or "").strip().upper()
+
+        if not normalized:
+            return "MAYBE"
+        if normalized == "ERROR":
+            return "ERROR"
+        if normalized in {"YES", "NO", "MAYBE"}:
+            return normalized
+
+        yes_terms = {
+            "YES", "Y", "APPROVE", "APPROVED", "ACCEPT", "ACCEPTED", "GO",
+            "GO FOR IT", "PROCEED", "PROCEEDING", "SHIP", "LAUNCH", "GREENLIGHT",
+            "GREEN LIGHT", "SUPPORT", "SUPPORTED", "FAVOR", "IN FAVOR",
+        }
+        no_terms = {
+            "NO", "N", "REJECT", "REJECTED", "DECLINE", "DECLINED", "DENY",
+            "DENIED", "STOP", "BLOCK", "BLOCKED", "VETO", "OPPOSE", "AGAINST",
+            "REJECTION",
+        }
+        maybe_terms = {
+            "MAYBE", "UNSURE", "UNCERTAIN", "MIXED", "HOLD", "WAIT",
+            "PROCEED WITH CAUTION", "CAUTION", "CONDITIONAL", "NEEDS MORE DATA",
+        }
+
+        if normalized in yes_terms:
+            return "YES"
+        if normalized in no_terms:
+            return "NO"
+        if normalized in maybe_terms:
+            return "MAYBE"
+
+        tokens = set(normalized.replace("-", " ").replace(",", " ").split())
+        if {"YES", "APPROVE", "ACCEPT", "PROCEED", "GO", "LAUNCH", "SHIP"} & tokens:
+            return "YES"
+        if {"NO", "REJECT", "REJECTION", "DECLINE", "DENY", "STOP", "BLOCK", "VETO"} & tokens:
+            return "NO"
+        if {"MAYBE", "CAUTION", "UNCERTAIN", "UNSURE", "HOLD", "WAIT", "CONDITIONAL"} & tokens:
+            return "MAYBE"
+
+        return "MAYBE"
+
     def _tally(
         self, votes: list[AgentVote]
     ) -> tuple[str, str, float, str, list[str]]:
@@ -60,13 +103,14 @@ class Department:
             return "DEADLOCK", "NONE", 0.0, "No votes received.", []
 
         # Count positions (excluding ERROR votes)
-        valid_votes = [v for v in votes if v.position != "ERROR"]
+        valid_votes = [v for v in votes if self._normalize_position(v.position) != "ERROR"]
         if not valid_votes:
             return "DEADLOCK", "NONE", 0.0, "All agents failed.", []
 
         position_counts: dict[str, list[AgentVote]] = {}
         for v in valid_votes:
-            position_counts.setdefault(v.position, []).append(v)
+            normalized_position = self._normalize_position(v.position)
+            position_counts.setdefault(normalized_position, []).append(v)
 
         # Find the leading position
         sorted_positions = sorted(
@@ -83,7 +127,7 @@ class Department:
         # Collect dissenting views
         dissents = []
         for v in valid_votes:
-            if v.position != top_position and v.dissent:
+            if self._normalize_position(v.position) != top_position and v.dissent:
                 dissents.append(f"{v.agent_name}: {v.dissent}")
 
         # Determine outcome
