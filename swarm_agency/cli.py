@@ -18,7 +18,11 @@ def main():
     parser.add_argument("--context", "-c", help="Additional context")
     parser.add_argument(
         "--department", "-d",
-        choices=["Strategy", "Product", "Marketing", "Research"],
+        choices=[
+            "Strategy", "Product", "Marketing", "Research",
+            "Finance", "Engineering", "Legal", "Operations",
+            "Sales", "Creative",
+        ],
         help="Target a specific department (default: all)",
     )
     parser.add_argument("--json", action="store_true", help="JSON output")

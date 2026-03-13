@@ -4,18 +4,32 @@ build-backend = "hatchling.build"
 
 [project]
 name = "swarm-agency"
-version = "0.1.0"
-description = "Multi-model AI agency where agents debate like departments in a business"
+version = "0.2.0"
+description = "43 AI personas across 10 departments — use as markdown rules or as a multi-model debate engine"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [{ name = "Miles0sage" }]
-keywords = ["ai", "agents", "multi-agent", "swarm", "agency", "debate", "llm"]
+keywords = [
+    "ai-agents",
+    "multi-agent",
+    "swarm-intelligence",
+    "llm",
+    "debate",
+    "decision-making",
+    "cursor-rules",
+    "claude-code",
+    "windsurf",
+    "aider",
+]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
@@ -28,6 +42,7 @@ cli = ["rich>=13.0.0"]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
+    "pytest-cov>=4.0",
     "rich>=13.0.0",
 ]
 
@@ -38,3 +53,12 @@ swarm-agency = "swarm_agency.cli:main"
 Homepage = "https://github.com/Miles0sage/swarm-agency"
 Repository = "https://github.com/Miles0sage/swarm-agency"
 Issues = "https://github.com/Miles0sage/swarm-agency/issues"
+Documentation = "https://github.com/Miles0sage/swarm-agency#readme"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["swarm_agency"]
+omit = ["tests/*"]
