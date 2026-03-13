@@ -10,6 +10,10 @@
 
 Cost: **$10/mo flat** (Alibaba DashScope Coding Plan) = unlimited debates.
 
+<p align="center">
+  <img src="demo/demo.svg" alt="swarm-agency demo" width="700">
+</p>
+
 ---
 
 ## Use Without Code (Copy & Paste)

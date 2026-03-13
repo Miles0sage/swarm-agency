@@ -1,0 +1,81 @@
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│   $ swarm-agency ask "Should we launch feature X?" --department strategy                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────── QUESTION ────────────────────────────────────────────────────────────────╮
+│                                                                                                                                          │
+│                                                       Should we launch feature X?                                                        │
+│                                                                                                                                          │
+╰─────────────────────────────────────────────── Department: Strategy | 5 agents | 5 models ───────────────────────────────────────────────╯
+
+──────────────────────────────────────────────────────────── Agent Deliberation ────────────────────────────────────────────────────────────
+
+╭─────────────────────────────────────────────────── Visionary (Chief Strategy Officer) ───────────────────────────────────────────────────╮
+│  Feature X aligns with our 3-year roadmap and creates a defensible moat in the mid-market segment. Competitors are 6-12 months behind    │
+│  on this capability.                                                                                                                     │
+│                                                                                                                                          │
+│    Position: APPROVE  |  Confidence: 85%  |  Model: glm-4.7                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────── DevilsAdvocate (Board Advisor) ─────────────────────────────────────────────────────╮
+│  Risk profile is unclear. We haven't validated demand beyond internal assumptions. Launch could cannibalize our core product's revenue   │
+│  by 15-20%.                                                                                                                              │
+│                                                                                                                                          │
+│    Position: REJECT  |  Confidence: 72%  |  Model: kimi-k2.5                                                                             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────── GrowthHacker (VP Growth) ────────────────────────────────────────────────────────╮
+│  Market timing is ideal. TAM expands by $4.2B if we capture the prosumer segment. Feature X is the wedge product we need for bottom-up   │
+│  adoption.                                                                                                                               │
+│                                                                                                                                          │
+│    Position: APPROVE  |  Confidence: 78%  |  Model: MiniMax-M2.5                                                                         │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────── NumbersCruncher (CFO) ──────────────────────────────────────────────────────────╮
+│  Unit economics are promising but unproven. Need 2,400 paid conversions in Q3 to hit break-even. Current projections show 1,800-3,200    │
+│  range -- too wide.                                                                                                                      │
+│                                                                                                                                          │
+│    Position: NEUTRAL  |  Confidence: 45%  |  Model: qwen3-coder-plus                                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────── Pragmatist (COO) ────────────────────────────────────────────────────────────╮
+│  Operationally feasible with current team if we defer the Platform v2 migration by one sprint. Recommend phased rollout: beta in Q2, GA  │
+│  in Q3.                                                                                                                                  │
+│                                                                                                                                          │
+│    Position: APPROVE  |  Confidence: 68%  |  Model: qwen3.5-plus                                                                         │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+─────────────────────────────────────────────────────────────── Vote Summary ───────────────────────────────────────────────────────────────
+
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+┃ Agent            ┃ Role                 ┃ Model            ┃ Position  ┃   Confidence   ┃ Key Factor                                      
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+│ Visionary        │ Chief Strategy       │ glm-4.7          │  APPROVE  │ ████████░░ 85% │ Strategic alignment with long-term vision       
+│                  │ Officer              │                  │           │                │                                                 
+├──────────────────┼──────────────────────┼──────────────────┼───────────┼────────────────┼─────────────────────────────────────────────────
+│ DevilsAdvocate   │ Board Advisor        │ kimi-k2.5        │  REJECT   │ ███████░░░ 72% │ No external demand validation completed         
+├──────────────────┼──────────────────────┼──────────────────┼───────────┼────────────────┼─────────────────────────────────────────────────
+│ GrowthHacker     │ VP Growth            │ MiniMax-M2.5     │  APPROVE  │ ███████░░░ 78% │ TAM expansion into prosumer segment             
+├──────────────────┼──────────────────────┼──────────────────┼───────────┼────────────────┼─────────────────────────────────────────────────
+│ NumbersCruncher  │ CFO                  │ qwen3-coder-plus │  NEUTRAL  │ ████░░░░░░ 45% │ Break-even requires 2,400 paid conversions      
+├──────────────────┼──────────────────────┼──────────────────┼───────────┼────────────────┼─────────────────────────────────────────────────
+│ Pragmatist       │ COO                  │ qwen3.5-plus     │  APPROVE  │ ██████░░░░ 68% │ Team capacity available with schedule trade-off 
+└──────────────────┴──────────────────────┴──────────────────┴───────────┴────────────────┴─────────────────────────────────────────────────
+
+                                                  APPROVE: 3      REJECT: 1      NEUTRAL: 1                                                 
+
+╭──────────────────────────────────────────────────────────── AGENCY DECISION ─────────────────────────────────────────────────────────────╮
+│                                                                                                                                          │
+│                                                        MAJORITY: APPROVE (3-1-1)                                                         │
+│                                                                                                                                          │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────── Summary ─────────────────────────────────────────────────────────────────╮
+│  The Strategy department recommends APPROVAL with conditions. 3 of 5 agents support launch (Visionary, GrowthHacker, Pragmatist), 1      │
+│  rejects (DevilsAdvocate citing unvalidated risk), and 1 is neutral (NumbersCruncher requesting tighter financial projections).          │
+│  Recommended path: phased rollout with market validation gate before GA.                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Dissenting Views:
+  > DevilsAdvocate: No external demand validation -- launching on assumptions alone.
+  > NumbersCruncher: Financial projections need tighter confidence interval before committing full resources.
+
+Confidence: 72.0% | Duration: 3.2s | Models used: glm-4.7, kimi-k2.5, MiniMax-M2.5, qwen3-coder-plus, qwen3.5-plus
+
