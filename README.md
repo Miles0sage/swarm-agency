@@ -72,6 +72,21 @@ swarm-agency "Should we pivot to B2B?" --context "B2C growth is flat"
 swarm-agency "Hire a senior or two juniors?" --department Finance --json
 ```
 
+### Try Without an API Key
+
+5 built-in demo scenarios with pre-computed debates — no API key needed:
+
+```bash
+swarm-agency --demo                    # List all scenarios
+swarm-agency --demo startup-pivot      # "Should we pivot from B2C to B2B?"
+swarm-agency --demo hire-senior        # "Hire one senior or two juniors?"
+swarm-agency --demo pricing-change     # "Switch to usage-based pricing?"
+swarm-agency --demo open-source        # "Open-source our core engine?"
+swarm-agency --demo remote-vs-office   # "Enforce return-to-office?"
+```
+
+Each demo shows the full debate: agent reasoning, confidence scores, vote tally, dissenting views — exactly like a live API run.
+
 ---
 
 ## The 43 Agents

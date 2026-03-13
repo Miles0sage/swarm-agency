@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Generate a static terminal demo of swarm-agency.
 
-Produces a visually impressive Rich-rendered demo showing the Strategy
-department debating "Should we launch feature X?" -- no API key needed.
+Uses the real "startup-pivot" demo scenario -- no API key needed.
 
 Outputs:
   demo/demo_output.txt      - plain text (for copy-paste)
@@ -10,187 +9,108 @@ Outputs:
 """
 
 import sys
-import time
 from io import StringIO
 from pathlib import Path
+
+# Add parent dir so we can import swarm_agency
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.columns import Columns
 from rich.text import Text
 from rich.rule import Rule
 from rich.align import Align
-from rich.live import Live
-from rich.padding import Padding
-from rich.layout import Layout
 from rich import box
 
-
-# ── Demo Data ──────────────────────────────────────────────────────────
-
-QUESTION = "Should we launch feature X?"
-DEPARTMENT = "Strategy"
-COMMAND = 'swarm-agency ask "Should we launch feature X?" --department strategy'
-
-AGENTS = [
-    {
-        "name": "Visionary",
-        "role": "Chief Strategy Officer",
-        "model": "glm-4.7",
-        "position": "APPROVE",
-        "confidence": 0.85,
-        "reasoning": "Feature X aligns with our 3-year roadmap and creates a defensible moat in the mid-market segment. Competitors are 6-12 months behind on this capability.",
-        "factors": [
-            "Strategic alignment with long-term vision",
-            "First-mover advantage in underserved segment",
-            "Creates switching costs for enterprise users",
-        ],
-    },
-    {
-        "name": "DevilsAdvocate",
-        "role": "Board Advisor",
-        "model": "kimi-k2.5",
-        "position": "REJECT",
-        "confidence": 0.72,
-        "reasoning": "Risk profile is unclear. We haven't validated demand beyond internal assumptions. Launch could cannibalize our core product's revenue by 15-20%.",
-        "factors": [
-            "No external demand validation completed",
-            "Cannibalization risk to core product line",
-            "Engineering capacity already stretched thin",
-        ],
-        "dissent": "Launching without market validation is hubris disguised as strategy.",
-    },
-    {
-        "name": "GrowthHacker",
-        "role": "VP Growth",
-        "model": "MiniMax-M2.5",
-        "position": "APPROVE",
-        "confidence": 0.78,
-        "reasoning": "Market timing is ideal. TAM expands by $4.2B if we capture the prosumer segment. Feature X is the wedge product we need for bottom-up adoption.",
-        "factors": [
-            "TAM expansion into prosumer segment",
-            "PLG motion fits feature X perfectly",
-            "Q2 launch catches seasonal demand wave",
-        ],
-    },
-    {
-        "name": "NumbersCruncher",
-        "role": "CFO",
-        "model": "qwen3-coder-plus",
-        "position": "NEUTRAL",
-        "confidence": 0.45,
-        "reasoning": "Unit economics are promising but unproven. Need 2,400 paid conversions in Q3 to hit break-even. Current projections show 1,800-3,200 range -- too wide.",
-        "factors": [
-            "Break-even requires 2,400 paid conversions",
-            "Projection confidence interval too wide",
-            "R&D investment recoverable in 8-14 months",
-        ],
-    },
-    {
-        "name": "Pragmatist",
-        "role": "COO",
-        "model": "qwen3.5-plus",
-        "position": "APPROVE",
-        "confidence": 0.68,
-        "reasoning": "Operationally feasible with current team if we defer the Platform v2 migration by one sprint. Recommend phased rollout: beta in Q2, GA in Q3.",
-        "factors": [
-            "Team capacity available with schedule trade-off",
-            "Phased rollout reduces blast radius",
-            "Existing CI/CD pipeline supports feature flags",
-        ],
-        "conditions": "Defer Platform v2 migration by one sprint; phased rollout mandatory.",
-    },
-]
-
-SUMMARY = (
-    "The Strategy department recommends APPROVAL with conditions. "
-    "3 of 5 agents support launch (Visionary, GrowthHacker, Pragmatist), "
-    "1 rejects (DevilsAdvocate citing unvalidated risk), and 1 is neutral "
-    "(NumbersCruncher requesting tighter financial projections). "
-    "Recommended path: phased rollout with market validation gate before GA."
-)
-
-DISSENTING_VIEWS = [
-    "DevilsAdvocate: No external demand validation -- launching on assumptions alone.",
-    "NumbersCruncher: Financial projections need tighter confidence interval before committing full resources.",
-]
+from swarm_agency.demos import DEMO_SCENARIOS
 
 
-# ── Render Functions ───────────────────────────────────────────────────
+# ── Load real scenario ────────────────────────────────────────────────
+
+SCENARIO = DEMO_SCENARIOS["startup-pivot"]
+QUESTION = SCENARIO["question"]
+CONTEXT = SCENARIO["context"]
+DEPARTMENT = SCENARIO["department"]
+DECISION = SCENARIO["decision"]
+COMMAND = f'swarm-agency --demo startup-pivot'
+
+# Model assignments per agent (from agents/ persona files)
+AGENT_MODELS = {
+    "Visionary": "glm-4.7",
+    "DevilsAdvocate": "kimi-k2.5",
+    "GrowthHacker": "MiniMax-M2.5",
+    "NumbersCruncher": "qwen3-coder-plus",
+    "Pragmatist": "qwen3.5-plus",
+}
+
+MODEL_COLORS = {
+    "glm-4.7": "bright_magenta",
+    "kimi-k2.5": "bright_cyan",
+    "MiniMax-M2.5": "bright_yellow",
+    "qwen3-coder-plus": "bright_green",
+    "qwen3.5-plus": "bright_blue",
+}
+
+
+# ── Render Functions ──────────────────────────────────────────────────
 
 def render_header(console: Console) -> None:
-    """Render the command header."""
     console.print()
     header = Text()
     header.append("  $ ", style="bold green")
     header.append(COMMAND, style="bold white")
-    console.print(Panel(
-        header,
-        border_style="dim",
-        padding=(0, 1),
-    ))
+    console.print(Panel(header, border_style="dim", padding=(0, 1)))
     console.print()
 
 
 def render_question_panel(console: Console) -> None:
-    """Render the question being debated."""
     console.print(Panel(
-        Align.center(
-            Text(QUESTION, style="bold white on blue", justify="center"),
-        ),
+        Align.center(Text(QUESTION, style="bold white on blue", justify="center")),
         title="[bold cyan]QUESTION",
-        subtitle=f"[dim]Department: {DEPARTMENT} | 5 agents | 5 models[/dim]",
+        subtitle=f"[dim]Department: {DEPARTMENT} | {len(DECISION.votes)} agents | 5 models[/dim]",
         border_style="cyan",
         padding=(1, 2),
     ))
+    console.print(f"[dim]Context: {CONTEXT}[/]")
     console.print()
 
 
 def render_deliberation(console: Console) -> None:
-    """Render the agent deliberation progress."""
     console.print(Rule("[bold yellow]Agent Deliberation", style="yellow"))
     console.print()
 
-    for agent in AGENTS:
-        model_color = {
-            "glm-4.7": "bright_magenta",
-            "kimi-k2.5": "bright_cyan",
-            "MiniMax-M2.5": "bright_yellow",
-            "qwen3-coder-plus": "bright_green",
-            "qwen3.5-plus": "bright_blue",
-        }.get(agent["model"], "white")
+    for vote in DECISION.votes:
+        model = AGENT_MODELS.get(vote.agent_name, "unknown")
+        model_color = MODEL_COLORS.get(model, "white")
 
-        status_icon = {
+        pos_style = {
             "APPROVE": "[bold green]APPROVE[/]",
             "REJECT": "[bold red]REJECT[/]",
             "NEUTRAL": "[bold yellow]NEUTRAL[/]",
-        }[agent["position"]]
+        }.get(vote.position, f"[bold]{vote.position}[/]")
 
-        agent_panel = Panel(
-            f"[dim]{agent['reasoning']}[/dim]\n\n"
-            f"  Position: {status_icon}  |  "
-            f"Confidence: [bold]{agent['confidence']:.0%}[/bold]  |  "
-            f"Model: [{model_color}]{agent['model']}[/{model_color}]",
-            title=f"[bold]{agent['name']}[/bold] [dim]({agent['role']})[/dim]",
+        panel = Panel(
+            f"[dim]{vote.reasoning}[/dim]\n\n"
+            f"  Position: {pos_style}  |  "
+            f"Confidence: [bold]{vote.confidence:.0%}[/bold]  |  "
+            f"Model: [{model_color}]{model}[/{model_color}]",
+            title=f"[bold]{vote.agent_name}[/bold]",
             border_style="dim",
             padding=(0, 2),
         )
-        console.print(agent_panel)
+        console.print(panel)
 
     console.print()
 
 
 def render_vote_table(console: Console) -> None:
-    """Render the votes as a styled table."""
     console.print(Rule("[bold]Vote Summary", style="white"))
     console.print()
 
     table = Table(
-        title=None,
         box=box.HEAVY_HEAD,
         show_lines=True,
-        title_style="bold",
         border_style="bright_blue",
         header_style="bold bright_white on dark_blue",
         pad_edge=True,
@@ -201,38 +121,25 @@ def render_vote_table(console: Console) -> None:
     table.add_column("Position", justify="center")
     table.add_column("Confidence", justify="center")
 
-    for agent in AGENTS:
-        # Position styling
+    for vote in DECISION.votes:
+        model = AGENT_MODELS.get(vote.agent_name, "unknown")
+        model_color = MODEL_COLORS.get(model, "white")
+
         pos_style = {
             "APPROVE": "[bold green]APPROVE[/]",
             "REJECT": "[bold red]REJECT[/]",
             "NEUTRAL": "[bold yellow]NEUTRAL[/]",
-        }[agent["position"]]
+        }.get(vote.position, f"[bold]{vote.position}[/]")
 
-        # Confidence bar
-        conf = agent["confidence"]
+        conf = vote.confidence
         filled = int(conf * 10)
         empty = 10 - filled
-        if conf >= 0.7:
-            bar_color = "green"
-        elif conf >= 0.5:
-            bar_color = "yellow"
-        else:
-            bar_color = "red"
+        bar_color = "green" if conf >= 0.7 else "yellow" if conf >= 0.5 else "red"
         conf_bar = f"[{bar_color}]{'█' * filled}{'░' * empty}[/{bar_color}] {conf:.0%}"
 
-        # Model coloring
-        model_color = {
-            "glm-4.7": "bright_magenta",
-            "kimi-k2.5": "bright_cyan",
-            "MiniMax-M2.5": "bright_yellow",
-            "qwen3-coder-plus": "bright_green",
-            "qwen3.5-plus": "bright_blue",
-        }.get(agent["model"], "white")
-
         table.add_row(
-            agent["name"],
-            f"[{model_color}]{agent['model']}[/{model_color}]",
+            vote.agent_name,
+            f"[{model_color}]{model}[/{model_color}]",
             pos_style,
             conf_bar,
         )
@@ -242,75 +149,77 @@ def render_vote_table(console: Console) -> None:
 
 
 def render_tally(console: Console) -> None:
-    """Render the vote tally bar."""
-    approve_count = sum(1 for a in AGENTS if a["position"] == "APPROVE")
-    reject_count = sum(1 for a in AGENTS if a["position"] == "REJECT")
-    neutral_count = sum(1 for a in AGENTS if a["position"] == "NEUTRAL")
+    counts = {}
+    for vote in DECISION.votes:
+        counts[vote.position] = counts.get(vote.position, 0) + 1
+
+    approve = counts.get("APPROVE", 0)
+    reject = counts.get("REJECT", 0)
+    neutral = counts.get("NEUTRAL", 0)
 
     tally_text = Text(justify="center")
-    tally_text.append(f"  APPROVE: {approve_count}  ", style="bold white on green")
+    tally_text.append(f"  APPROVE: {approve}  ", style="bold white on green")
     tally_text.append("  ")
-    tally_text.append(f"  REJECT: {reject_count}  ", style="bold white on red")
+    tally_text.append(f"  REJECT: {reject}  ", style="bold white on red")
     tally_text.append("  ")
-    tally_text.append(f"  NEUTRAL: {neutral_count}  ", style="bold white on dark_orange3")
+    tally_text.append(f"  NEUTRAL: {neutral}  ", style="bold white on dark_orange3")
 
     console.print(Align.center(tally_text))
     console.print()
 
 
-def render_decision(console: Console) -> None:
-    """Render the final decision panel."""
+def render_decision_panel(console: Console) -> None:
+    pos_color = "green" if DECISION.position == "APPROVE" else "red" if DECISION.position == "REJECT" else "yellow"
+    outcome_color = {"CONSENSUS": "green", "MAJORITY": "yellow", "SPLIT": "red"}.get(DECISION.outcome, "white")
+
     decision_text = Text()
-    decision_text.append("MAJORITY: ", style="bold yellow")
-    decision_text.append("APPROVE", style="bold green")
-    decision_text.append(" (3-1-1)", style="bold white")
+    decision_text.append(f"{DECISION.outcome}: ", style=f"bold {outcome_color}")
+    decision_text.append(DECISION.position, style=f"bold {pos_color}")
 
     console.print(Panel(
         Align.center(decision_text),
         title="[bold white]AGENCY DECISION[/bold white]",
-        border_style="green",
+        border_style=pos_color,
         padding=(1, 4),
     ))
     console.print()
 
 
 def render_summary(console: Console) -> None:
-    """Render the summary and dissenting views."""
     console.print(Panel(
-        f"[dim]{SUMMARY}[/dim]",
+        f"[dim]{DECISION.summary}[/dim]",
         title="[bold]Summary",
         border_style="dim",
         padding=(0, 2),
     ))
     console.print()
 
-    # Dissenting views
-    console.print("[bold red]Dissenting Views:[/]")
-    for view in DISSENTING_VIEWS:
-        console.print(f"  [dim red]>[/] {view}")
-    console.print()
+    if DECISION.dissenting_views:
+        console.print("[bold red]Dissenting Views:[/]")
+        for view in DECISION.dissenting_views:
+            console.print(f"  [dim red]>[/] {view}")
+        console.print()
 
-    # Footer stats
+    models_used = ", ".join(AGENT_MODELS.get(v.agent_name, "?") for v in DECISION.votes)
     console.print(
-        "[dim]Confidence: 72.0% | "
-        "Duration: 3.2s | "
-        "Models used: glm-4.7, kimi-k2.5, MiniMax-M2.5, qwen3-coder-plus, qwen3.5-plus[/dim]"
+        f"[dim]Confidence: {DECISION.confidence:.0%} | "
+        f"Duration: {DECISION.duration_seconds}s | "
+        f"Models: {models_used}[/dim]"
     )
     console.print()
 
 
 def render_full_demo(console: Console) -> None:
-    """Render the complete demo output."""
     render_header(console)
     render_question_panel(console)
     render_deliberation(console)
     render_vote_table(console)
     render_tally(console)
-    render_decision(console)
+    render_decision_panel(console)
     render_summary(console)
 
 
-# ── Main ───────────────────────────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────────────
 
 def main() -> None:
     demo_dir = Path(__file__).parent

@@ -1,48 +1,50 @@
 
 [2m╭──────────────────────────────────────────────────────────────────────────────╮[0m
-[2m│[0m [1;32m  $ [0m[1;37mswarm-agency ask "Should we launch feature X?" --department strategy[0m     [2m│[0m
+[2m│[0m [1;32m  $ [0m[1;37mswarm-agency --demo startup-pivot[0m                                        [2m│[0m
 [2m╰──────────────────────────────────────────────────────────────────────────────╯[0m
 
 [36m╭─[0m[36m─────────────────────────────────[0m[36m [0m[1;36mQUESTION[0m[36m [0m[36m─────────────────────────────────[0m[36m─╮[0m
 [36m│[0m                                                                              [36m│[0m
-[36m│[0m                         [1;37;44mShould we launch feature X?[0m                          [36m│[0m
+[36m│[0m                       [1;37;44mShould we pivot from B2C to B2B?[0m                       [36m│[0m
 [36m│[0m                                                                              [36m│[0m
 [36m╰─[0m[36m────────────────[0m[36m [0m[2;36mDepartment: Strategy | 5 agents | 5 models[0m[36m [0m[36m────────────────[0m[36m─╯[0m
+[2mContext: B2C growth flat at 12k MAU for [0m[1;2;36m6[0m[2m months. Enterprise inbound up 3x. Team[0m
+[2mof [0m[1;2;36m8[0m[2m. [0m[1;2;36m14[0m[2m months runway.[0m
 
 [33m────────────────────────────── [0m[1;33mAgent Deliberation[0m[33m ──────────────────────────────[0m
 
-[2m╭─[0m[2m────────────────────[0m[2m [0m[1;2mVisionary[0m[2m [0m[2m(Chief Strategy Officer)[0m[2m [0m[2m────────────────────[0m[2m─╮[0m
-[2m│[0m  [2mFeature X aligns with our 3-year roadmap and creates a defensible moat in [0m  [2m│[0m
-[2m│[0m  [2mthe mid-market segment. Competitors are 6-12 months behind on this [0m         [2m│[0m
-[2m│[0m  [2mcapability.[0m                                                                 [2m│[0m
+[2m╭─[0m[2m────────────────────────────────[0m[2m [0m[1;2mVisionary[0m[2m [0m[2m─────────────────────────────────[0m[2m─╮[0m
+[2m│[0m  [2mB2B creates defensible revenue. Enterprise contracts = predictable ARR. [0m    [2m│[0m
+[2m│[0m  [2mB2C is a war of attrition we can't win at this scale.[0m                       [2m│[0m
 [2m│[0m                                                                              [2m│[0m
-[2m│[0m    Position: [1;32mAPPROVE[0m  |  Confidence: [1m85%[0m  |  Model: [95mglm-4.7[0m                  [2m│[0m
+[2m│[0m    Position: [1;32mAPPROVE[0m  |  Confidence: [1m88%[0m  |  Model: [95mglm-4.7[0m                  [2m│[0m
 [2m╰──────────────────────────────────────────────────────────────────────────────╯[0m
-[2m╭─[0m[2m──────────────────────[0m[2m [0m[1;2mDevilsAdvocate[0m[2m [0m[2m(Board Advisor)[0m[2m [0m[2m──────────────────────[0m[2m─╮[0m
-[2m│[0m  [2mRisk profile is unclear. We haven't validated demand beyond internal [0m       [2m│[0m
-[2m│[0m  [2massumptions. Launch could cannibalize our core product's revenue by [0m        [2m│[0m
-[2m│[0m  [2m15-20%.[0m                                                                     [2m│[0m
+[2m╭─[0m[2m──────────────────────────────[0m[2m [0m[1;2mDevilsAdvocate[0m[2m [0m[2m──────────────────────────────[0m[2m─╮[0m
+[2m│[0m  [2mPivots kill startups more often than they save them. We have no enterprise[0m  [2m│[0m
+[2m│[0m  [2msales motion, no SOC 2, no SLAs. We'd be starting from zero with 14 months[0m  [2m│[0m
+[2m│[0m  [2mrunway.[0m                                                                     [2m│[0m
 [2m│[0m                                                                              [2m│[0m
-[2m│[0m    Position: [1;31mREJECT[0m  |  Confidence: [1m72%[0m  |  Model: [96mkimi-k2.5[0m                 [2m│[0m
+[2m│[0m    Position: [1;31mREJECT[0m  |  Confidence: [1m76%[0m  |  Model: [96mkimi-k2.5[0m                 [2m│[0m
 [2m╰──────────────────────────────────────────────────────────────────────────────╯[0m
-[2m╭─[0m[2m─────────────────────────[0m[2m [0m[1;2mGrowthHacker[0m[2m [0m[2m(VP Growth)[0m[2m [0m[2m─────────────────────────[0m[2m─╮[0m
-[2m│[0m  [2mMarket timing is ideal. TAM expands by $4.2B if we capture the prosumer [0m    [2m│[0m
-[2m│[0m  [2msegment. Feature X is the wedge product we need for bottom-up adoption.[0m     [2m│[0m
+[2m╭─[0m[2m───────────────────────────────[0m[2m [0m[1;2mGrowthHacker[0m[2m [0m[2m───────────────────────────────[0m[2m─╮[0m
+[2m│[0m  [2mB2B ACV of $24k vs B2C LTV of $180. The math is obvious. 50 enterprise [0m     [2m│[0m
+[2m│[0m  [2mcustomers = $1.2M ARR. We need 6,700 B2C users for the same revenue.[0m        [2m│[0m
 [2m│[0m                                                                              [2m│[0m
-[2m│[0m    Position: [1;32mAPPROVE[0m  |  Confidence: [1m78%[0m  |  Model: [93mMiniMax-M2.5[0m             [2m│[0m
+[2m│[0m    Position: [1;32mAPPROVE[0m  |  Confidence: [1m72%[0m  |  Model: [93mMiniMax-M2.5[0m             [2m│[0m
 [2m╰──────────────────────────────────────────────────────────────────────────────╯[0m
-[2m╭─[0m[2m──────────────────────────[0m[2m [0m[1;2mNumbersCruncher[0m[2m [0m[2m(CFO)[0m[2m [0m[2m───────────────────────────[0m[2m─╮[0m
-[2m│[0m  [2mUnit economics are promising but unproven. Need 2,400 paid conversions in [0m  [2m│[0m
-[2m│[0m  [2mQ3 to hit break-even. Current projections show 1,800-3,200 range -- too [0m    [2m│[0m
-[2m│[0m  [2mwide.[0m                                                                       [2m│[0m
+[2m╭─[0m[2m─────────────────────────────[0m[2m [0m[1;2mNumbersCruncher[0m[2m [0m[2m──────────────────────────────[0m[2m─╮[0m
+[2m│[0m  [2mThe unit economics favor B2B but we have zero data on enterprise sales [0m     [2m│[0m
+[2m│[0m  [2mcycle length, churn, or implementation costs. Projecting ARR from 3 [0m        [2m│[0m
+[2m│[0m  [2minbound emails is irresponsible.[0m                                            [2m│[0m
 [2m│[0m                                                                              [2m│[0m
-[2m│[0m    Position: [1;33mNEUTRAL[0m  |  Confidence: [1m45%[0m  |  Model: [92mqwen3-coder-plus[0m         [2m│[0m
+[2m│[0m    Position: [1;33mNEUTRAL[0m  |  Confidence: [1m41%[0m  |  Model: [92mqwen3-coder-plus[0m         [2m│[0m
 [2m╰──────────────────────────────────────────────────────────────────────────────╯[0m
-[2m╭─[0m[2m─────────────────────────────[0m[2m [0m[1;2mPragmatist[0m[2m [0m[2m(COO)[0m[2m [0m[2m─────────────────────────────[0m[2m─╮[0m
-[2m│[0m  [2mOperationally feasible with current team if we defer the Platform v2 [0m       [2m│[0m
-[2m│[0m  [2mmigration by one sprint. Recommend phased rollout: beta in Q2, GA in Q3.[0m    [2m│[0m
+[2m╭─[0m[2m────────────────────────────────[0m[2m [0m[1;2mPragmatist[0m[2m [0m[2m────────────────────────────────[0m[2m─╮[0m
+[2m│[0m  [2mHybrid approach: keep B2C running on autopilot, dedicate 5 of 8 engineers [0m  [2m│[0m
+[2m│[0m  [2mto B2B pilot. Test with 3 enterprise prospects over 90 days before full [0m    [2m│[0m
+[2m│[0m  [2mcommitment.[0m                                                                 [2m│[0m
 [2m│[0m                                                                              [2m│[0m
-[2m│[0m    Position: [1;32mAPPROVE[0m  |  Confidence: [1m68%[0m  |  Model: [94mqwen3.5-plus[0m             [2m│[0m
+[2m│[0m    Position: [1;32mAPPROVE[0m  |  Confidence: [1m65%[0m  |  Model: [94mqwen3.5-plus[0m             [2m│[0m
 [2m╰──────────────────────────────────────────────────────────────────────────────╯[0m
 
 [37m───────────────────────────────── [0m[1mVote Summary[0m[37m ─────────────────────────────────[0m
@@ -50,39 +52,38 @@
        [94m┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓[0m       
        [94m┃[0m[1;97;48;5;18m [0m[1;97;48;5;18mAgent          [0m[1;97;48;5;18m [0m[94m┃[0m[1;97;48;5;18m [0m[1;97;48;5;18mModel           [0m[1;97;48;5;18m [0m[94m┃[0m[1;97;48;5;18m [0m[1;97;48;5;18mPosition[0m[1;97;48;5;18m [0m[94m┃[0m[1;97;48;5;18m [0m[1;97;48;5;18m  Confidence  [0m[1;97;48;5;18m [0m[94m┃[0m       
        [94m┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩[0m       
-       [94m│[0m[1;36m [0m[1;36mVisionary      [0m[1;36m [0m[94m│[0m [95mglm-4.7[0m          [94m│[0m [1;32mAPPROVE[0m  [94m│[0m [32m████████░░[0m 85% [94m│[0m       
+       [94m│[0m[1;36m [0m[1;36mVisionary      [0m[1;36m [0m[94m│[0m [95mglm-4.7[0m          [94m│[0m [1;32mAPPROVE[0m  [94m│[0m [32m████████░░[0m 88% [94m│[0m       
        [94m├─────────────────┼──────────────────┼──────────┼────────────────┤[0m       
-       [94m│[0m[1;36m [0m[1;36mDevilsAdvocate [0m[1;36m [0m[94m│[0m [96mkimi-k2.5[0m        [94m│[0m  [1;31mREJECT[0m  [94m│[0m [32m███████░░░[0m 72% [94m│[0m       
+       [94m│[0m[1;36m [0m[1;36mDevilsAdvocate [0m[1;36m [0m[94m│[0m [96mkimi-k2.5[0m        [94m│[0m  [1;31mREJECT[0m  [94m│[0m [32m███████░░░[0m 76% [94m│[0m       
        [94m├─────────────────┼──────────────────┼──────────┼────────────────┤[0m       
-       [94m│[0m[1;36m [0m[1;36mGrowthHacker   [0m[1;36m [0m[94m│[0m [93mMiniMax-M2.5[0m     [94m│[0m [1;32mAPPROVE[0m  [94m│[0m [32m███████░░░[0m 78% [94m│[0m       
+       [94m│[0m[1;36m [0m[1;36mGrowthHacker   [0m[1;36m [0m[94m│[0m [93mMiniMax-M2.5[0m     [94m│[0m [1;32mAPPROVE[0m  [94m│[0m [32m███████░░░[0m 72% [94m│[0m       
        [94m├─────────────────┼──────────────────┼──────────┼────────────────┤[0m       
-       [94m│[0m[1;36m [0m[1;36mNumbersCruncher[0m[1;36m [0m[94m│[0m [92mqwen3-coder-plus[0m [94m│[0m [1;33mNEUTRAL[0m  [94m│[0m [31m████░░░░░░[0m 45% [94m│[0m       
+       [94m│[0m[1;36m [0m[1;36mNumbersCruncher[0m[1;36m [0m[94m│[0m [92mqwen3-coder-plus[0m [94m│[0m [1;33mNEUTRAL[0m  [94m│[0m [31m████░░░░░░[0m 41% [94m│[0m       
        [94m├─────────────────┼──────────────────┼──────────┼────────────────┤[0m       
-       [94m│[0m[1;36m [0m[1;36mPragmatist     [0m[1;36m [0m[94m│[0m [94mqwen3.5-plus[0m     [94m│[0m [1;32mAPPROVE[0m  [94m│[0m [33m██████░░░░[0m 68% [94m│[0m       
+       [94m│[0m[1;36m [0m[1;36mPragmatist     [0m[1;36m [0m[94m│[0m [94mqwen3.5-plus[0m     [94m│[0m [1;32mAPPROVE[0m  [94m│[0m [33m██████░░░░[0m 65% [94m│[0m       
        [94m└─────────────────┴──────────────────┴──────────┴────────────────┘[0m       
 
                   [1;37;42m  APPROVE: 3  [0m  [1;37;41m  REJECT: 1  [0m  [1;37;48;5;166m  NEUTRAL: 1[0m                   
 
 [32m╭─[0m[32m─────────────────────────────[0m[32m [0m[1;37mAGENCY DECISION[0m[32m [0m[32m──────────────────────────────[0m[32m─╮[0m
 [32m│[0m                                                                              [32m│[0m
-[32m│[0m                          [1;33mMAJORITY: [0m[1;32mAPPROVE[0m[1;37m (3-1-1)[0m                           [32m│[0m
+[32m│[0m                              [1;33mMAJORITY: [0m[1;32mAPPROVE[0m                               [32m│[0m
 [32m│[0m                                                                              [32m│[0m
 [32m╰──────────────────────────────────────────────────────────────────────────────╯[0m
 
 [2m╭─[0m[2m─────────────────────────────────[0m[2m [0m[1;2mSummary[0m[2m [0m[2m──────────────────────────────────[0m[2m─╮[0m
-[2m│[0m  [2mThe Strategy department recommends APPROVAL with conditions. 3 of 5 agents[0m  [2m│[0m
-[2m│[0m  [2msupport launch (Visionary, GrowthHacker, Pragmatist), 1 rejects [0m            [2m│[0m
-[2m│[0m  [2m(DevilsAdvocate citing unvalidated risk), and 1 is neutral [0m                 [2m│[0m
-[2m│[0m  [2m(NumbersCruncher requesting tighter financial projections). Recommended [0m    [2m│[0m
-[2m│[0m  [2mpath: phased rollout with market validation gate before GA.[0m                 [2m│[0m
+[2m│[0m  [2mStrategy department recommends pivot with conditions. 3 approve [0m            [2m│[0m
+[2m│[0m  [2m(Visionary, GrowthHacker, Pragmatist), 1 rejects (DevilsAdvocate citing [0m    [2m│[0m
+[2m│[0m  [2mexecution risk), 1 neutral (NumbersCruncher wanting data). Recommended: [0m    [2m│[0m
+[2m│[0m  [2m90-day hybrid pilot before full commitment.[0m                                 [2m│[0m
 [2m╰──────────────────────────────────────────────────────────────────────────────╯[0m
 
 [1;31mDissenting Views:[0m
-  [2;31m>[0m DevilsAdvocate: No external demand validation -- launching on assumptions 
-alone.
-  [2;31m>[0m NumbersCruncher: Financial projections need tighter confidence interval 
-before committing full resources.
+  [2;31m>[0m DevilsAdvocate: No enterprise sales infrastructure exists. Pivoting without 
+SOC [1;36m2[0m, SLAs, or a sales team is a recipe for burning remaining runway.
+  [2;31m>[0m NumbersCruncher: Revenue projections based on [1;36m3[0m inbound inquiries are 
+statistically meaningless. Need validated sales cycle and churn data.
 
-[2mConfidence: [0m[1;2;36m72.0[0m[2m% | Duration: [0m[1;2;36m3.[0m[2m2s | Models used: glm-[0m[1;2;36m4.7[0m[2m, kimi-k2.[0m[1;2;36m5[0m[2m, [0m
-[2mMiniMax-M2.[0m[1;2;36m5[0m[2m, qwen3-coder-plus, qwen3.[0m[1;2;36m5[0m[2m-plus[0m
+[2mConfidence: [0m[1;2;36m74[0m[2m% | Duration: [0m[1;2;36m4.[0m[2m1s | Models: glm-[0m[1;2;36m4.7[0m[2m, kimi-k2.[0m[1;2;36m5[0m[2m, MiniMax-M2.[0m[1;2;36m5[0m[2m, [0m
+[2mqwen3-coder-plus, qwen3.[0m[1;2;36m5[0m[2m-plus[0m
 

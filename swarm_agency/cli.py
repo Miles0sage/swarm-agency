@@ -8,13 +8,50 @@ import sys
 from .types import AgencyRequest
 from .agency import Agency
 from .presets import create_full_agency_departments
+from .demos import DEMO_SCENARIOS, DEMO_LIST
+
+
+def _run_demo(scenario_name):
+    """Run a pre-computed demo scenario. Returns the Decision object."""
+    if scenario_name not in DEMO_SCENARIOS:
+        print(f"Unknown demo: {scenario_name}")
+        print(f"Available: {', '.join(DEMO_LIST)}")
+        sys.exit(1)
+    scenario = DEMO_SCENARIOS[scenario_name]
+    return scenario["question"], scenario["context"], scenario["decision"]
+
+
+def _list_demos():
+    """Print available demo scenarios."""
+    try:
+        from rich.console import Console
+        from rich.table import Table
+
+        console = Console()
+        console.print("\n[bold]Available demo scenarios:[/]\n")
+        table = Table(show_header=True)
+        table.add_column("#", style="dim", width=3)
+        table.add_column("Name", style="cyan bold")
+        table.add_column("Question")
+        table.add_column("Dept", style="yellow")
+        for i, name in enumerate(DEMO_LIST, 1):
+            s = DEMO_SCENARIOS[name]
+            table.add_row(str(i), name, s["question"], s["department"])
+        console.print(table)
+        console.print("\n[dim]Run with: swarm-agency --demo <name>[/]\n")
+    except ImportError:
+        print("\nAvailable demo scenarios:\n")
+        for i, name in enumerate(DEMO_LIST, 1):
+            s = DEMO_SCENARIOS[name]
+            print(f"  {i}. {name}: {s['question']} ({s['department']})")
+        print(f"\nRun with: swarm-agency --demo <name>\n")
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="AI Agency - multi-model agents debate your decisions"
     )
-    parser.add_argument("question", help="The question/decision for the agency")
+    parser.add_argument("question", nargs="?", help="The question/decision for the agency")
     parser.add_argument("--context", "-c", help="Additional context")
     parser.add_argument(
         "--department", "-d",
@@ -28,25 +65,42 @@ def main():
     parser.add_argument("--json", action="store_true", help="JSON output")
     parser.add_argument("--api-key", help="API key (or set ALIBABA_CODING_API_KEY)")
     parser.add_argument("--base-url", help="API base URL")
+    parser.add_argument(
+        "--demo",
+        nargs="?",
+        const="__list__",
+        metavar="SCENARIO",
+        help="Run a pre-computed demo (no API key needed). Use --demo to list scenarios.",
+    )
 
     args = parser.parse_args()
 
-    agency = Agency(
-        name="SwarmAgency",
-        api_key=args.api_key,
-        base_url=args.base_url,
-    )
-    for dept in create_full_agency_departments():
-        agency.add_department(dept)
+    # Demo mode
+    if args.demo is not None:
+        if args.demo == "__list__":
+            _list_demos()
+            return
+        question, context, decision = _run_demo(args.demo)
+    else:
+        if not args.question:
+            parser.error("question is required (or use --demo)")
 
-    request = AgencyRequest(
-        request_id="cli-001",
-        question=args.question,
-        context=args.context,
-        department=args.department,
-    )
+        agency = Agency(
+            name="SwarmAgency",
+            api_key=args.api_key,
+            base_url=args.base_url,
+        )
+        for dept in create_full_agency_departments():
+            agency.add_department(dept)
 
-    decision = asyncio.run(agency.decide(request))
+        request = AgencyRequest(
+            request_id="cli-001",
+            question=args.question,
+            context=args.context,
+            department=args.department,
+        )
+
+        decision = asyncio.run(agency.decide(request))
 
     if args.json:
         print(json.dumps(decision.to_dict(), indent=2))
@@ -56,8 +110,24 @@ def main():
         from rich.console import Console
         from rich.table import Table
         from rich.panel import Panel
+        from rich.align import Align
+        from rich.text import Text
 
         console = Console()
+
+        # Question panel (demo mode)
+        if args.demo is not None and args.demo != "__list__":
+            console.print()
+            console.print(Panel(
+                Align.center(Text(question, style="bold white")),
+                title="[bold cyan]QUESTION",
+                subtitle=f"[dim]Department: {decision.department} | {len(decision.votes)} agents | Demo mode[/dim]",
+                border_style="cyan",
+                padding=(1, 2),
+            ))
+            if context:
+                console.print(f"[dim]Context: {context}[/]")
+            console.print()
 
         # Outcome panel
         color = {"CONSENSUS": "green", "MAJORITY": "yellow", "SPLIT": "red"}.get(
