@@ -196,12 +196,10 @@ def render_vote_table(console: Console) -> None:
         pad_edge=True,
         padding=(0, 1),
     )
-    table.add_column("Agent", style="bold cyan", min_width=16)
-    table.add_column("Role", style="dim", min_width=20)
-    table.add_column("Model", min_width=16)
-    table.add_column("Position", justify="center", min_width=9)
-    table.add_column("Confidence", justify="center", min_width=14)
-    table.add_column("Key Factor", no_wrap=True)
+    table.add_column("Agent", style="bold cyan")
+    table.add_column("Model", no_wrap=True)
+    table.add_column("Position", justify="center")
+    table.add_column("Confidence", justify="center")
 
     for agent in AGENTS:
         # Position styling
@@ -234,11 +232,9 @@ def render_vote_table(console: Console) -> None:
 
         table.add_row(
             agent["name"],
-            agent["role"],
             f"[{model_color}]{agent['model']}[/{model_color}]",
             pos_style,
             conf_bar,
-            agent["factors"][0],
         )
 
     console.print(Align.center(table))
@@ -323,9 +319,9 @@ def main() -> None:
     live_console = Console(force_terminal=True)
     render_full_demo(live_console)
 
-    # 2. Save ANSI output
+    # 2. Save ANSI output (80 cols for SVG compatibility)
     ansi_buffer = StringIO()
-    ansi_console = Console(file=ansi_buffer, force_terminal=True, width=140)
+    ansi_console = Console(file=ansi_buffer, force_terminal=True, width=80)
     render_full_demo(ansi_console)
     ansi_path = demo_dir / "demo_output_ansi.txt"
     ansi_path.write_text(ansi_buffer.getvalue())
@@ -333,7 +329,7 @@ def main() -> None:
 
     # 3. Save plain text output
     plain_buffer = StringIO()
-    plain_console = Console(file=plain_buffer, no_color=True, width=140)
+    plain_console = Console(file=plain_buffer, no_color=True, width=80)
     render_full_demo(plain_console)
     plain_path = demo_dir / "demo_output.txt"
     plain_path.write_text(plain_buffer.getvalue())

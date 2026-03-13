@@ -15,7 +15,7 @@ CAST_FILE="${SCRIPT_DIR}/demo.cast"
 echo "Recording demo to ${CAST_FILE}..."
 
 asciinema rec \
-  --cols 140 \
+  --cols 80 \
   --rows 50 \
   --title "swarm-agency: AI agents debate your decisions" \
   --command "python3 ${SCRIPT_DIR}/generate_demo.py" \
