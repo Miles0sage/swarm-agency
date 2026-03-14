@@ -30,8 +30,10 @@ TOP RISK:
 ```
 
 <p align="center">
-  <img src="demo.svg" alt="swarm-agency verdict: YES with reasons and risk" width="700">
+  <a href="https://asciinema.org/a/8s8vIaoxvCdF8d11"><img src="https://asciinema.org/a/8s8vIaoxvCdF8d11.svg" alt="swarm-agency demo" width="700"></a>
 </p>
+
+*Click to watch the full demo — install, ask, verdict, full transcript.*
 
 **Why this is different:** ChatGPT gives you one opinion. This gives you a structured debate between agents running on **different LLM families** (GLM, Qwen, Kimi, Claude, Gemini, DeepSeek, Llama, Mistral). Different training data = different blind spots = better decisions.
 
