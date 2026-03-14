@@ -52,6 +52,8 @@ def _save_settings(state):
 
 SLASH_COMMANDS = {
     "/help": "Show available commands",
+    "/last": "Show full transcript of the last debate",
+    "/verbose": "Toggle verbose mode (show full debate after each question)",
     "/agents": "List all 43 agents",
     "/departments": "List all 10 departments",
     "/dept <name>": "Focus on a specific department (e.g. /dept Finance)",
@@ -63,6 +65,7 @@ SLASH_COMMANDS = {
     "/context clear": "Clear persistent context",
     "/json": "Toggle JSON output mode",
     "/provider <name>": "Switch provider (dashscope or openrouter)",
+    "/dual": "Toggle dual debate mode (Chinese + Western models)",
     "/demo <name>": "Run a demo scenario",
     "/clear": "Clear the screen",
     "/exit": "Exit the chat",
@@ -206,6 +209,7 @@ def _run_debate(agency, question, context, department, quiet=False):
 KNOWN_COMMANDS = [
     "/help", "/exit", "/quit", "/q", "/clear", "/agents", "/departments",
     "/dept", "/memory", "/history", "/context", "/json", "/demo", "/provider",
+    "/last", "/verbose", "/dual",
 ]
 
 # Words that trigger commands even without the / prefix
@@ -479,6 +483,58 @@ def _handle_slash_command(cmd, args_str, state, console=None):
                 scenario["question"], scenario["context"],
                 scenario["decision"],
             )
+        return True
+
+    if cmd == "/last":
+        last_decision = state.get("last_decision")
+        last_question = state.get("last_question", "")
+        last_context = state.get("last_context", "")
+        if not last_decision:
+            msg = "No debate yet. Ask a question first."
+            if console:
+                console.print(f"  [yellow]{msg}[/]")
+            else:
+                print(f"  {msg}")
+            return True
+
+        # Show verdict first
+        from .verdict import decision_to_verdict, format_verdict_rich, format_verdict_text
+        verdict = decision_to_verdict(last_decision)
+        try:
+            format_verdict_rich(verdict)
+        except ImportError:
+            print(format_verdict_text(verdict))
+
+        # Then full debate
+        if console:
+            console.print("\n[dim]──── Full Agent Deliberation ────[/]\n")
+        else:
+            print("\n---- Full Agent Deliberation ----\n")
+
+        if console:
+            from .cli import _render_rich
+            _render_rich(last_question, last_context, last_decision, "Chat")
+        else:
+            from .cli import _render_plain
+            _render_plain(last_question, last_context, last_decision)
+        return True
+
+    if cmd == "/verbose":
+        state["verbose"] = not state.get("verbose", False)
+        mode = "on" if state["verbose"] else "off"
+        if console:
+            console.print(f"  [green]Verbose mode: {mode}[/] {'(full debate after each question)' if state['verbose'] else '(verdict only)'}")
+        else:
+            print(f"  Verbose mode: {mode}")
+        return True
+
+    if cmd == "/dual":
+        state["dual"] = not state.get("dual", False)
+        mode = "on" if state["dual"] else "off"
+        if console:
+            console.print(f"  [green]Dual debate mode: {mode}[/] {'(Chinese + Western models)' if state['dual'] else ''}")
+        else:
+            print(f"  Dual debate mode: {mode}")
         return True
 
     return False
@@ -760,24 +816,44 @@ def run_chat(api_key=None, base_url=None, memory=False, department=None, provide
                     state["department"],
                 )
 
-            # Store in session history
+            # Store in session history + for /last replay
             state["history"].append((user_input, decision))
-
-            # Render — show user-visible context (not the history blob)
+            state["last_decision"] = decision
+            state["last_question"] = user_input
             display_context_parts = []
             if state["context"]:
                 display_context_parts.append(state["context"])
             if inline_ctx:
                 display_context_parts.append(inline_ctx)
             display_context = "\n".join(display_context_parts) if display_context_parts else ""
+            state["last_context"] = display_context
 
+            # Render
             if state.get("json_mode"):
                 import json
                 print(json.dumps(decision.to_dict(), indent=2))
-            elif console:
-                _render_decision_rich(user_input, display_context, decision, console, elapsed)
             else:
-                _render_decision_plain(user_input, display_context, decision)
+                # Always show verdict first
+                from .verdict import decision_to_verdict, format_verdict_rich, format_verdict_text
+                verdict = decision_to_verdict(decision)
+                try:
+                    format_verdict_rich(verdict)
+                except ImportError:
+                    print(format_verdict_text(verdict))
+
+                # Show full debate if verbose mode
+                if state.get("verbose"):
+                    if console:
+                        console.print("\n[dim]──── Full Agent Deliberation ────[/]\n")
+                        _render_decision_rich(user_input, display_context, decision, console, elapsed)
+                    else:
+                        print("\n---- Full Agent Deliberation ----\n")
+                        _render_decision_plain(user_input, display_context, decision)
+                else:
+                    if console:
+                        console.print("  [dim]Full transcript:[/] [bold]/last[/]  [dim]Always show:[/] [bold]/verbose[/]\n")
+                    else:
+                        print("  Full transcript: /last  |  Always show: /verbose\n")
 
         except KeyboardInterrupt:
             if console:
