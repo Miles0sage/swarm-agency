@@ -140,8 +140,11 @@ async def call_agent(
         "max_tokens": 600,
     }
 
-    # Request JSON output format when the API supports it
-    if "openrouter" in base_url or "openai" in base_url:
+    # Request JSON output format — skip for models that don't support it
+    # Gemini models on OpenRouter don't handle response_format well
+    model_lower = agent.model.lower()
+    gemini_model = "gemini" in model_lower or "google" in model_lower
+    if ("openrouter" in base_url or "openai" in base_url) and not gemini_model:
         payload["response_format"] = {"type": "json_object"}
 
     headers = {
@@ -164,10 +167,17 @@ async def call_agent(
             # Check if we got a real parse or fallback
             reasoning = parsed.get("reasoning", "No reasoning provided")
             if reasoning == "Response could not be parsed" and attempt == 0:
-                # Retry with explicit JSON-only instruction
+                # Retry with a clean, short request
                 logger.warning(f"{agent.name} returned unparseable response, retrying with strict prompt")
-                payload["messages"].append({"role": "assistant", "content": content})
-                payload["messages"].append({"role": "user", "content": 'Your response was not valid JSON. Reply with ONLY this JSON format, nothing else: {"position": "YES or NO or MAYBE", "confidence": 0.5, "reasoning": "your reason", "factors": ["f1"]}'})
+                payload["messages"] = [
+                    {"role": "system", "content": "You are a business analyst. Respond with ONLY valid JSON."},
+                    {"role": "user", "content": (
+                        f"Question: {request.question}\n"
+                        f"Vote YES, NO, or MAYBE. Reply ONLY with this JSON:\n"
+                        f'{{"position": "YES", "confidence": 0.8, "reasoning": "your 1-2 sentence reason", "factors": ["f1"]}}'
+                    )},
+                ]
+                payload.pop("response_format", None)  # remove in case it caused issues
                 continue
 
             return AgentVote(
