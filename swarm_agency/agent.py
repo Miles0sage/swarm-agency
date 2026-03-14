@@ -61,7 +61,7 @@ async def call_agent(
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.7,
-        "max_tokens": 400,
+        "max_tokens": 600,
     }
 
     headers = {
@@ -86,6 +86,12 @@ async def call_agent(
                 if content.endswith("```"):
                     content = content[:-3]
                 content = content.strip()
+
+            # Extract JSON object even if surrounded by extra text
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
+            if json_start >= 0 and json_end > json_start:
+                content = content[json_start:json_end]
 
             parsed = json.loads(content)
 

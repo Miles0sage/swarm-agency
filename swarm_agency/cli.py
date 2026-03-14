@@ -538,6 +538,10 @@ def main():
         help="Show decision history. Optionally filter by department.",
     )
     parser.add_argument(
+        "--dual", action="store_true",
+        help="Run same question through Chinese AND Western AI models, compare results",
+    )
+    parser.add_argument(
         "--rounds", "-r",
         type=int,
         default=1,
@@ -723,6 +727,36 @@ def main():
 
         question = args.question
         context = args.context
+
+        # Dual debate mode
+        if args.dual:
+            from .dual_debate import dual_debate, format_dual_result_rich, format_dual_result_text, format_dual_result_dict
+
+            try:
+                from rich.console import Console
+                console = Console()
+                console.print()
+                with console.status("[bold cyan]Running dual debate (Chinese + Western models)...[/]", spinner="dots"):
+                    result = asyncio.run(dual_debate(
+                        question, context, args.department,
+                        provider_a="dashscope", provider_b="openrouter",
+                    ))
+            except ImportError:
+                print("\n  Running dual debate...")
+                result = asyncio.run(dual_debate(
+                    question, context, args.department,
+                    provider_a="dashscope", provider_b="openrouter",
+                ))
+
+            if args.json:
+                print(json.dumps(format_dual_result_dict(result), indent=2))
+            else:
+                try:
+                    format_dual_result_rich(result)
+                except ImportError:
+                    print(format_dual_result_text(result))
+            return
+
         decision = _run_live_with_progress(
             question=question,
             context=context,

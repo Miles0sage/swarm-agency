@@ -190,6 +190,107 @@ def format_dual_result_text(result: DualDebateResult) -> str:
     return "\n".join(lines)
 
 
+def format_dual_result_rich(result: DualDebateResult) -> None:
+    """Render dual debate with clean Rich visuals."""
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich.columns import Columns
+    from rich import box
+
+    console = Console()
+    console.print()
+
+    # Header
+    console.print(Panel(
+        Text(result.question, style="bold white", justify="center"),
+        title="[bold cyan]DUAL DEBATE[/]",
+        subtitle="[dim]Same question, different AI model families[/]",
+        border_style="cyan",
+        padding=(1, 3),
+    ))
+    console.print()
+
+    # Side-by-side verdicts
+    from .verdict import decision_to_verdict
+
+    verdict_a = decision_to_verdict(result.decision_a)
+    verdict_b = decision_to_verdict(result.decision_b)
+
+    color_a = {"YES": "green", "NO": "red", "MAYBE": "yellow"}.get(verdict_a.answer, "white")
+    color_b = {"YES": "green", "NO": "red", "MAYBE": "yellow"}.get(verdict_b.answer, "white")
+
+    provider_labels = {
+        "dashscope": "Chinese Models\n(GLM, Qwen, Kimi, MiniMax)",
+        "openrouter": "Western Models\n(Claude, Gemini, DeepSeek, Llama)",
+    }
+
+    panel_a = Panel(
+        Text(f"{verdict_a.answer}\n{verdict_a.confidence:.0%} confidence\n{verdict_a.agents_for}v{verdict_a.agents_against}",
+             style=f"bold {color_a}", justify="center"),
+        title=f"[bold]{provider_labels.get(result.provider_a, result.provider_a)}[/]",
+        border_style=color_a,
+        width=35,
+    )
+    panel_b = Panel(
+        Text(f"{verdict_b.answer}\n{verdict_b.confidence:.0%} confidence\n{verdict_b.agents_for}v{verdict_b.agents_against}",
+             style=f"bold {color_b}", justify="center"),
+        title=f"[bold]{provider_labels.get(result.provider_b, result.provider_b)}[/]",
+        border_style=color_b,
+        width=35,
+    )
+    console.print(Columns([panel_a, panel_b], padding=(0, 4)))
+    console.print()
+
+    # Agreement banner
+    if result.providers_agree:
+        agree_color = "green"
+        agree_text = f"AGREE: Both say {result.verdict}"
+        signal = "Different training data, same conclusion = strong signal"
+    else:
+        agree_color = "red"
+        agree_text = f"DISAGREE: Split decision"
+        signal = "Models trained on different data reach different conclusions"
+
+    console.print(Panel(
+        Text(f"{agree_text}\nCombined confidence: {result.combined_confidence:.0%}\n{signal}",
+             style=f"bold {agree_color}", justify="center"),
+        border_style=agree_color,
+    ))
+    console.print()
+
+    # Reasons comparison table
+    table = Table(
+        title="Reasoning Comparison",
+        box=box.ROUNDED, show_header=True, header_style="bold", expand=True,
+    )
+    table.add_column(result.provider_a, style="cyan", ratio=1)
+    table.add_column(result.provider_b, style="magenta", ratio=1)
+
+    reasons_a = verdict_a.top_reasons[:3]
+    reasons_b = verdict_b.top_reasons[:3]
+    max_rows = max(len(reasons_a), len(reasons_b))
+    for i in range(max_rows):
+        ra = reasons_a[i] if i < len(reasons_a) else ""
+        rb = reasons_b[i] if i < len(reasons_b) else ""
+        table.add_row(ra[:80], rb[:80])
+
+    console.print(table)
+    console.print()
+
+    # Final verdict
+    console.print(Panel(
+        Text(f"VERDICT: {result.verdict}\n\n{result.verdict_reasoning[:200]}",
+             justify="center"),
+        title="[bold]COMBINED DECISION[/]",
+        border_style="cyan",
+        padding=(1, 2),
+    ))
+
+    console.print(f"\n  [dim]{result.provider_a}: {result.duration_a}s · {result.provider_b}: {result.duration_b}s · swarm-agency v1.0.0[/]\n")
+
+
 def format_dual_result_dict(result: DualDebateResult) -> dict:
     """Format dual debate result as JSON-serializable dict."""
     return {
