@@ -10,9 +10,18 @@
 
 Cost: **$10/mo flat** (Alibaba DashScope Coding Plan) = unlimited debates.
 
+### Try it now — no API key needed:
+
+```bash
+pip install swarm-agency[cli]
+swarm-agency --demo startup-pivot
+```
+
 <p align="center">
-  <img src="demo/demo.svg" alt="swarm-agency demo" width="700">
+  <img src="demo/demo.svg" alt="swarm-agency: 5 AI agents debate whether a startup should pivot from B2C to B2B" width="700">
 </p>
+
+*↑ Real output. 5 agents across 5 different LLM models debating "Should we pivot from B2C to B2B?" — with reasoning, confidence scores, and dissenting views.*
 
 ---
 
