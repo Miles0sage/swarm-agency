@@ -779,7 +779,7 @@ def main():
         print(json.dumps(decision.to_dict(), indent=2))
         return
 
-    if args.verbose or mode_label == "Demo":
+    if args.verbose:
         # Full debate view
         try:
             _render_rich(question, context or "", decision, mode_label)

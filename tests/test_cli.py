@@ -124,7 +124,7 @@ class TestCLIDemo:
         with patch("sys.argv", ["swarm-agency", "--demo", "open-source"]):
             main()
         output = capsys.readouterr().out
-        assert "QUESTION" in output or "SWARM AGENCY" in output
+        assert "QUESTION" in output or "SWARM AGENCY" in output or "confidence" in output
 
     def test_demo_all_scenarios_have_valid_decisions(self):
         from swarm_agency.demos import DEMO_SCENARIOS, DEMO_LIST
