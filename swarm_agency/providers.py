@@ -47,7 +47,7 @@ OPENROUTER_MODELS = {
     "UserAdvocate":     "anthropic/claude-haiku-4.5",       # Empathetic, user-focused
     "TechLead":         "deepseek/deepseek-v3.2",           # Deep technical reasoning
     "DesignThinker":    "mistralai/mistral-small-creative",  # Creative, design-oriented
-    "DataDriven":       "google/gemini-2.5-pro",            # Analytical, data-focused
+    "DataDriven":       "deepseek/deepseek-v3.2",           # Analytical, reliable JSON output
     "ShipIt":           "qwen/qwen3-coder-next",            # Fast, code-aware, ship-oriented
 
     # ── Marketing Department ──
@@ -60,7 +60,7 @@ OPENROUTER_MODELS = {
     # ── Research Department ──
     # Need deep reasoning and broad knowledge
     "DeepDiver":        "deepseek/deepseek-r1",             # Best reasoning model
-    "TrendSpotter":     "google/gemini-2.5-pro",            # Broad knowledge base
+    "TrendSpotter":     "meta-llama/llama-4-maverick",      # Broad knowledge, reliable JSON
     "Synthesizer":      "anthropic/claude-sonnet-4.6",      # Cross-domain connections
     "FactChecker":      "deepseek/deepseek-v3.2",           # Precise verification
 
@@ -85,7 +85,7 @@ OPENROUTER_MODELS = {
     "GeneralCounsel":   "anthropic/claude-sonnet-4.6",      # Careful legal reasoning
     "IPAttorney":       "deepseek/deepseek-r1",             # Deep IP analysis
     "ComplianceOfficer": "mistralai/mistral-large-2512",    # European compliance perspective
-    "ContractReviewer": "google/gemini-2.5-pro",            # Detailed contract analysis
+    "ContractReviewer": "qwen/qwen3-coder-plus",            # Precise analysis, reliable JSON
 
     # ── Operations Department ──
     # Execution-focused, practical
