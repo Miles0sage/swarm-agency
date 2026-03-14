@@ -209,6 +209,101 @@ def render_summary(console: Console) -> None:
     console.print()
 
 
+def render_memory_section(console: Console) -> None:
+    """Render the Decision Memory feature showcase."""
+    console.print(Rule("[bold magenta]Decision Memory", style="magenta"))
+    console.print()
+
+    # Simulated "stored" confirmation
+    console.print(
+        "[dim green]Decision stored to memory [dim](~/.swarm-agency/decisions.db)[/dim][/]"
+    )
+    console.print()
+
+    # Show the --history command
+    history_header = Text()
+    history_header.append("  $ ", style="bold green")
+    history_header.append("swarm-agency --history", style="bold white")
+    console.print(Panel(history_header, border_style="dim", padding=(0, 1)))
+    console.print()
+
+    # History table with realistic past decisions + our current one
+    history_table = Table(
+        title="[bold]Decision History[/bold]",
+        box=box.HEAVY_HEAD,
+        border_style="bright_magenta",
+        header_style="bold bright_white on dark_magenta",
+        pad_edge=True,
+        padding=(0, 1),
+        show_lines=True,
+    )
+    history_table.add_column("ID", style="dim", width=12)
+    history_table.add_column("Question", max_width=30)
+    history_table.add_column("Dept", style="yellow", width=10)
+    history_table.add_column("Outcome", width=10)
+    history_table.add_column("Position", style="bold", width=8)
+    history_table.add_column("Correct?", width=8)
+
+    # Current decision (just stored)
+    history_table.add_row(
+        "demo-001",
+        "Should we pivot from B2C to B2B?",
+        "Strategy",
+        "[yellow]MAJORITY[/]",
+        "[green]APPROVE[/]",
+        "[dim]?[/dim]",
+    )
+    # Past decisions from memory
+    history_table.add_row(
+        "test-mem-001",
+        "Acquire struggling competitor\nwith 50k users?",
+        "Strategy",
+        "[yellow]MAJORITY[/]",
+        "[red]NO[/]",
+        "[green]yes[/]",
+    )
+    history_table.add_row(
+        "test-mem-002",
+        "Acquire competitor with key\npatents for $1.5M?",
+        "Strategy",
+        "[yellow]MAJORITY[/]",
+        "[green]YES[/]",
+        "[dim]?[/dim]",
+    )
+    history_table.add_row(
+        "test-mem-003",
+        "Counter-offer lead engineer\nwith 40% raise + equity?",
+        "Engineering",
+        "[yellow]MAJORITY[/]",
+        "[green]YES[/]",
+        "[dim]?[/dim]",
+    )
+
+    console.print(Align.center(history_table))
+    console.print()
+
+    # Show feedback command
+    feedback_header = Text()
+    feedback_header.append("  $ ", style="bold green")
+    feedback_header.append("swarm-agency --feedback demo-001 yes", style="bold white")
+    console.print(Panel(feedback_header, border_style="dim", padding=(0, 1)))
+    console.print(
+        "[green]Feedback recorded for demo-001: correct[/]"
+    )
+    console.print()
+
+    # Show memory-aware deliberation hint
+    console.print(Panel(
+        "[dim]When [bold]--memory[/bold] is enabled, agents see prior decisions on similar "
+        "topics\nand adjust confidence based on their track record. Past outcomes\n"
+        "improve future debates — institutional memory that compounds.[/dim]",
+        title="[bold magenta]How Decision Memory Works[/]",
+        border_style="magenta",
+        padding=(0, 2),
+    ))
+    console.print()
+
+
 def render_full_demo(console: Console) -> None:
     render_header(console)
     render_question_panel(console)
@@ -217,6 +312,7 @@ def render_full_demo(console: Console) -> None:
     render_tally(console)
     render_decision_panel(console)
     render_summary(console)
+    render_memory_section(console)
 
 
 # ── Main ──────────────────────────────────────────────────────────────

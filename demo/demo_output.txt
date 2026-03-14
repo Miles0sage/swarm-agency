@@ -87,3 +87,49 @@ statistically meaningless. Need validated sales cycle and churn data.
 Confidence: 74% | Duration: 4.1s | Models: glm-4.7, kimi-k2.5, MiniMax-M2.5, 
 qwen3-coder-plus, qwen3.5-plus
 
+─────────────────────────────── Decision Memory ────────────────────────────────
+
+Decision stored to memory (~/.swarm-agency/decisions.db)
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│   $ swarm-agency --history                                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+                                Decision History                                
+┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃ ID           ┃ Question      ┃ Dept       ┃ Outcome    ┃ Position ┃ Correct? ┃
+┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ demo-001     │ Should we     │ Strategy   │ MAJORITY   │ APPROVE  │ ?        │
+│              │ pivot from    │            │            │          │          │
+│              │ B2C to B2B?   │            │            │          │          │
+├──────────────┼───────────────┼────────────┼────────────┼──────────┼──────────┤
+│ test-mem-001 │ Acquire       │ Strategy   │ MAJORITY   │ NO       │ yes      │
+│              │ struggling    │            │            │          │          │
+│              │ competitor    │            │            │          │          │
+│              │ with 50k      │            │            │          │          │
+│              │ users?        │            │            │          │          │
+├──────────────┼───────────────┼────────────┼────────────┼──────────┼──────────┤
+│ test-mem-002 │ Acquire       │ Strategy   │ MAJORITY   │ YES      │ ?        │
+│              │ competitor    │            │            │          │          │
+│              │ with key      │            │            │          │          │
+│              │ patents for   │            │            │          │          │
+│              │ $1.5M?        │            │            │          │          │
+├──────────────┼───────────────┼────────────┼────────────┼──────────┼──────────┤
+│ test-mem-003 │ Counter-offer │ Engineeri… │ MAJORITY   │ YES      │ ?        │
+│              │ lead engineer │            │            │          │          │
+│              │ with 40%      │            │            │          │          │
+│              │ raise +       │            │            │          │          │
+│              │ equity?       │            │            │          │          │
+└──────────────┴───────────────┴────────────┴────────────┴──────────┴──────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│   $ swarm-agency --feedback demo-001 yes                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Feedback recorded for demo-001: correct
+
+╭───────────────────────── How Decision Memory Works ──────────────────────────╮
+│  When --memory is enabled, agents see prior decisions on similar topics      │
+│  and adjust confidence based on their track record. Past outcomes            │
+│  improve future debates — institutional memory that compounds.               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

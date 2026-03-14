@@ -16,8 +16,8 @@ echo "Recording demo to ${CAST_FILE}..."
 
 asciinema rec \
   --cols 80 \
-  --rows 50 \
-  --title "swarm-agency: AI agents debate your decisions" \
+  --rows 140 \
+  --title "swarm-agency: AI agents debate your decisions with Decision Memory" \
   --command "python3 ${SCRIPT_DIR}/generate_demo.py" \
   --overwrite \
   "${CAST_FILE}"

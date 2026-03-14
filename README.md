@@ -18,10 +18,10 @@ swarm-agency --demo startup-pivot
 ```
 
 <p align="center">
-  <img src="demo/demo.svg" alt="swarm-agency: 5 AI agents debate whether a startup should pivot from B2C to B2B" width="700">
+  <img src="demo/demo.svg" alt="swarm-agency: 5 AI agents debate whether a startup should pivot from B2C to B2B, with Decision Memory tracking past decisions" width="700">
 </p>
 
-*↑ Real output. 5 agents across 5 different LLM models debating "Should we pivot from B2C to B2B?" — with reasoning, confidence scores, and dissenting views.*
+*↑ Real output. 5 agents across 5 different LLM models debating "Should we pivot from B2C to B2B?" — with reasoning, confidence scores, dissenting views, and Decision Memory that tracks outcomes over time.*
 
 ---
 
