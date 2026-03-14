@@ -29,6 +29,7 @@ from .scheduler import AgentScheduler, ScheduledJob
 from .alerts import Alert, decision_to_alert, format_alert_text
 from .messaging import MessageBus, AgentMessage, auto_escalate
 from .dual_debate import dual_debate, DualDebateResult
+from .verdict import Verdict, decision_to_verdict, format_verdict_text
 from .presets import (
     ALL_AGENTS,
     DEPARTMENT_NAMES,
@@ -113,4 +114,7 @@ __all__ = [
     "auto_escalate",
     "dual_debate",
     "DualDebateResult",
+    "Verdict",
+    "decision_to_verdict",
+    "format_verdict_text",
 ]

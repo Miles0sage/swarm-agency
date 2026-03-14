@@ -132,7 +132,13 @@ async def decide(
         department=department,
     )
     decision = await agency.decide(request)
-    return decision.to_dict()
+
+    from .verdict import decision_to_verdict
+    verdict = decision_to_verdict(decision)
+    return {
+        "verdict": verdict.to_dict(),
+        "full_debate": decision.to_dict(),
+    }
 
 
 @app.get("/api/dual-debate")

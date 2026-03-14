@@ -497,6 +497,10 @@ def main():
         help="Target a specific department (default: all 10)",
     )
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
+    parser.add_argument(
+        "--verbose", "-v", action="store_true",
+        help="Show full agent deliberation (default: clean verdict only)",
+    )
     parser.add_argument("--api-key", help="API key (or set env var for your provider)")
     parser.add_argument("--base-url", help="API base URL override")
     parser.add_argument(
@@ -741,10 +745,20 @@ def main():
         print(json.dumps(decision.to_dict(), indent=2))
         return
 
-    try:
-        _render_rich(question, context or "", decision, mode_label)
-    except ImportError:
-        _render_plain(question, context or "", decision)
+    if args.verbose or mode_label == "Demo":
+        # Full debate view
+        try:
+            _render_rich(question, context or "", decision, mode_label)
+        except ImportError:
+            _render_plain(question, context or "", decision)
+    else:
+        # Clean verdict (new default for live debates)
+        from .verdict import decision_to_verdict, format_verdict_rich, format_verdict_text
+        verdict = decision_to_verdict(decision)
+        try:
+            format_verdict_rich(verdict)
+        except ImportError:
+            print(format_verdict_text(verdict))
 
 
 if __name__ == "__main__":
