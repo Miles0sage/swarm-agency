@@ -29,6 +29,10 @@ TOP RISK:
   ████████████████████████████  1 for / 4 against
 ```
 
+<p align="center">
+  <img src="demo.svg" alt="swarm-agency verdict: YES with reasons and risk" width="700">
+</p>
+
 **Why this is different:** ChatGPT gives you one opinion. This gives you a structured debate between agents running on **different LLM families** (GLM, Qwen, Kimi, Claude, Gemini, DeepSeek, Llama, Mistral). Different training data = different blind spots = better decisions.
 
 ---
@@ -79,7 +83,11 @@ Run the same question through **two different AI ecosystems** simultaneously. Wh
 swarm-agency "Should we acquire CompetitorX for $2M?" --dual
 ```
 
-Shows side-by-side comparison with combined verdict.
+Shows side-by-side comparison with combined verdict:
+
+<p align="center">
+  <img src="dual-debate-demo.svg" alt="swarm-agency dual debate: Chinese vs Western AI models" width="700">
+</p>
 
 ---
 
