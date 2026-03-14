@@ -12,24 +12,20 @@ Cost: **$10/mo flat** (Alibaba DashScope Coding Plan) = unlimited debates.
 
 ### Try it now — no API key needed:
 
-**Web UI (non-technical):**
-```bash
-pip install swarm-agency[web]
-streamlit run app.py
-# Opens in your browser — click buttons, no terminal needed
-```
+**[Live Web Demo](https://swarm-agency.streamlit.app)** — click a scenario and see 5 AI agents debate it in your browser.
 
 **CLI (developers):**
 ```bash
 pip install swarm-agency[cli]
 swarm-agency --demo startup-pivot
+swarm-agency --agents  # See all 43 agents
 ```
 
 <p align="center">
-  <img src="demo/demo.svg" alt="swarm-agency: 5 AI agents debate whether a startup should pivot from B2C to B2B, with Decision Memory tracking past decisions" width="700">
+  <img src="demo.svg" alt="swarm-agency CLI: 5 AI agents debate whether a startup should pivot from B2C to B2B" width="700">
 </p>
 
-*↑ Real output. 5 agents across 5 different LLM models debating "Should we pivot from B2C to B2B?" — with reasoning, confidence scores, dissenting views, and Decision Memory that tracks outcomes over time.*
+*↑ Real output. 5 agents across 5 different LLM models debating "Should we pivot from B2C to B2B?" — with reasoning, confidence scores, dissenting views, and vote tally.*
 
 ---
 
