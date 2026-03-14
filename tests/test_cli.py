@@ -137,11 +137,12 @@ class TestCLIDemo:
             assert "decision" in s
             assert len(s["decision"].votes) >= 4
 
-    def test_no_question_no_demo_errors(self):
-        import pytest
-        with pytest.raises(SystemExit):
+    def test_no_question_launches_chat(self):
+        """Running with no args now launches interactive chat mode."""
+        with patch("swarm_agency.chat.run_chat") as mock_chat:
             with patch("sys.argv", ["swarm-agency"]):
                 main()
+            mock_chat.assert_called_once()
 
 
 class TestCLIOutput:

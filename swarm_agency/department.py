@@ -24,33 +24,45 @@ class Department:
         threshold: float = 0.6,
         api_key: str = "",
         base_url: str = "",
+        description: str = "",
     ):
         self.name = name
         self.agents = agents
         self.threshold = threshold  # fraction needed for CONSENSUS/MAJORITY
         self.api_key = api_key
         self.base_url = base_url
+        self.description = description
 
     async def debate(
         self,
         request: AgencyRequest,
         memory_store: Optional["DecisionMemoryStore"] = None,
+        query_embedding: Optional[list[float]] = None,
     ) -> Decision:
         """Run all agents in parallel, tally positions, return a Decision."""
         start = time.time()
 
         # Build per-agent memory context if memory is enabled
         memory_contexts: dict[str, str] = {}
+        agent_weights: Optional[dict[str, float]] = None
         if memory_store:
             from .memory import build_memory_context
             similar = memory_store.find_similar(
-                request.question, request.context, limit=3
+                request.question, request.context, limit=3,
+                query_embedding=query_embedding,
             )
+
+            # Compute agent weights from track records
+            weights: dict[str, float] = {}
             for agent in self.agents:
                 track = memory_store.get_agent_track_record(agent.name)
                 memory_contexts[agent.name] = build_memory_context(
                     similar, track
                 )
+                if track.get("reviewed", 0) > 0 and track.get("accuracy") is not None:
+                    weights[agent.name] = 0.5 + (track["accuracy"] * 0.5)
+            if weights:
+                agent_weights = weights
 
         tasks = [
             call_agent(
@@ -62,7 +74,9 @@ class Department:
         votes: list[AgentVote] = await asyncio.gather(*tasks)
 
         duration = time.time() - start
-        outcome, position, confidence, summary, dissents = self._tally(votes)
+        outcome, position, confidence, summary, dissents = self._tally(
+            votes, agent_weights=agent_weights
+        )
 
         return Decision(
             request_id=request.request_id,
@@ -120,9 +134,15 @@ class Department:
         return "MAYBE"
 
     def _tally(
-        self, votes: list[AgentVote]
+        self,
+        votes: list[AgentVote],
+        agent_weights: Optional[dict[str, float]] = None,
     ) -> tuple[str, str, float, str, list[str]]:
-        """Tally votes and determine outcome."""
+        """Tally votes and determine outcome.
+
+        If agent_weights is provided, votes are weighted by agent track record.
+        Weight formula: 0.5 + (accuracy * 0.5) → range [0.5, 1.0].
+        """
         if not votes:
             return "DEADLOCK", "NONE", 0.0, "No votes received.", []
 
@@ -131,19 +151,32 @@ class Department:
         if not valid_votes:
             return "DEADLOCK", "NONE", 0.0, "All agents failed.", []
 
-        position_counts: dict[str, list[AgentVote]] = {}
+        # Group votes by normalized position with weights
+        position_weights: dict[str, float] = {}
+        position_votes: dict[str, list[AgentVote]] = {}
         for v in valid_votes:
             normalized_position = self._normalize_position(v.position)
-            position_counts.setdefault(normalized_position, []).append(v)
+            position_votes.setdefault(normalized_position, []).append(v)
+            weight = 1.0
+            if agent_weights is not None:
+                weight = agent_weights.get(v.agent_name, 1.0)
+            position_weights[normalized_position] = (
+                position_weights.get(normalized_position, 0.0) + weight
+            )
 
-        # Find the leading position
+        # Find the leading position by weighted count
         sorted_positions = sorted(
-            position_counts.items(), key=lambda x: len(x[1]), reverse=True
+            position_weights.items(), key=lambda x: x[1], reverse=True
         )
-        top_position, top_votes = sorted_positions[0]
+        top_position = sorted_positions[0][0]
+        top_votes = position_votes[top_position]
+        top_weighted = position_weights[top_position]
+        total_weighted = sum(position_weights.values())
+        ratio = top_weighted / total_weighted
+
+        # Unweighted counts for summary messages
         top_count = len(top_votes)
         total = len(valid_votes)
-        ratio = top_count / total
 
         # Calculate confidence as weighted average of agreeing votes
         avg_conf = sum(v.confidence for v in top_votes) / top_count
@@ -155,7 +188,7 @@ class Department:
                 dissents.append(f"{v.agent_name}: {v.dissent}")
 
         # Determine outcome
-        if ratio >= 1.0:
+        if top_count == total:
             outcome = "CONSENSUS"
             summary = (
                 f"Unanimous: all {total} agents in {self.name} agree on {top_position}."
@@ -169,7 +202,8 @@ class Department:
         else:
             outcome = "SPLIT"
             positions_str = ", ".join(
-                f"{pos}: {len(vs)}" for pos, vs in sorted_positions
+                f"{pos}: {len(position_votes[pos])}"
+                for pos, _ in sorted_positions
             )
             summary = (
                 f"No clear majority in {self.name}. Positions: {positions_str}."

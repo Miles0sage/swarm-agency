@@ -134,16 +134,29 @@ def _render_debate(question: str, context: str, department: str, decision: Decis
             )
 
 
-def _run_live_debate(question: str, context: str, department: str, api_key: str):
+def _run_live_debate(
+    question: str, context: str, department: str, api_key: str,
+    rounds: int = 1, memory: bool = False, sports_mode: bool = False,
+):
     """Run a live debate via the API."""
     import asyncio
     from swarm_agency import Agency, AgencyRequest, create_full_agency_departments
 
     dept_filter = None if department == "All Departments" else department
 
-    agency = Agency(name="WebUI", api_key=api_key.strip())
-    for dept in create_full_agency_departments():
-        agency.add_department(dept)
+    agency = Agency(name="WebUI", api_key=api_key.strip(), memory_enabled=memory)
+
+    if sports_mode:
+        from swarm_agency.sports import create_sports_departments
+        for dept in create_sports_departments():
+            agency.add_department(dept)
+        agent_count = 10
+        dept_count = 3
+    else:
+        for dept in create_full_agency_departments():
+            agency.add_department(dept)
+        agent_count = 43
+        dept_count = 10
 
     import uuid
     request = AgencyRequest(
@@ -153,16 +166,33 @@ def _run_live_debate(question: str, context: str, department: str, api_key: str)
         department=dept_filter,
     )
 
-    with st.spinner("5 AI agents are debating your question across 5 different models..."):
-        decision = asyncio.run(agency.decide(request))
+    label = f"{agent_count} agents across {dept_count} departments"
+    if rounds > 1:
+        label += f" ({rounds} rounds)"
+
+    if rounds > 1:
+        from swarm_agency.rounds import multi_round_debate
+        with st.spinner(f"{label} deliberating..."):
+            target_depts = list(agency.departments.values())
+            if dept_filter and dept_filter in agency.departments:
+                target_depts = [agency.departments[dept_filter]]
+            # Run multi-round on first matching department
+            decision, round_results = asyncio.run(
+                multi_round_debate(target_depts[0], request, max_rounds=rounds)
+            )
+            st.info(f"Converged in {len(round_results)} round(s). "
+                     + ", ".join(f"R{r.round_number}: {r.outcome}" for r in round_results))
+    else:
+        with st.spinner(f"{label} deliberating..."):
+            decision = asyncio.run(agency.decide(request))
 
     _render_debate(question, context or "", department, decision)
 
 
 # ── Header ───────────────────────────────────────────────────────────
 
-st.title("Swarm Agency")
-st.markdown("**43 AI personas debate your business decisions.** Pick a scenario below or type your own question.")
+st.title("Swarm Agency v0.5")
+st.markdown("**43 AI personas debate your business decisions.** Multi-round debate, semantic memory, streaming, tool-calling. Pick a scenario or ask your own.")
 st.markdown("---")
 
 # ── Sidebar: mode selection ──────────────────────────────────────────
@@ -223,10 +253,30 @@ else:
         placeholder="Revenue $30k MRR, growing 15% m/m. 2 competing term sheets.",
         height=80,
     )
-    department = st.selectbox(
-        "Department",
-        ["All Departments", "Strategy", "Product", "Marketing", "Research",
-         "Finance", "Engineering", "Legal", "Operations", "Sales", "Creative"],
+    col1, col2 = st.columns(2)
+    with col1:
+        department = st.selectbox(
+            "Department",
+            ["All Departments", "Strategy", "Product", "Marketing", "Research",
+             "Finance", "Engineering", "Legal", "Operations", "Sales", "Creative"],
+        )
+    with col2:
+        rounds = st.selectbox("Debate Rounds", [1, 2, 3], index=0, help="Multi-round: agents see others' votes and revise")
+
+    # v0.5.0 features
+    feat_cols = st.columns(3)
+    with feat_cols[0]:
+        use_memory = st.checkbox("Semantic Memory", help="Store decisions with embeddings for future reference")
+    with feat_cols[1]:
+        use_tools = st.checkbox("Agent Tools", help="Let agents use calculator, ROI analysis, etc.")
+    with feat_cols[2]:
+        use_sports = st.checkbox("Sports Mode", help="Use 10 sports-specific agents instead of business agents")
+
+    # Template picker
+    template = st.selectbox(
+        "Use Template (optional)",
+        ["None", "hire", "pricing", "launch", "vendor", "pivot"],
+        help="Pre-built question formats for common decisions",
     )
 
     # Use server-side secret so visitors can test without their own key
@@ -249,9 +299,20 @@ else:
         )
 
     if st.button("Run Debate", type="primary", use_container_width=True):
-        if not question:
+        final_question = question
+        final_context = context
+
+        # Handle template
+        if template and template != "None" and not question:
+            st.error("Templates need field values. Use the CLI: swarm-agency --template hire --candidate Jane --role CTO")
+            st.stop()
+
+        if not final_question:
             st.error("Type a question first.")
         elif not api_key:
             st.error("Paste your DashScope API key to run live debates. Or try a demo scenario in the sidebar.")
         else:
-            _run_live_debate(question, context, department, api_key)
+            _run_live_debate(
+                final_question, final_context, department, api_key,
+                rounds=rounds, memory=use_memory, sports_mode=use_sports,
+            )

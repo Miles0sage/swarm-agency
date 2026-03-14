@@ -9,8 +9,11 @@ import logging
 import os
 import re
 import sqlite3
+import struct
 from pathlib import Path
 from typing import Optional
+
+import numpy as np
 
 from .types import Decision, DecisionRecord
 
@@ -98,9 +101,16 @@ class DecisionMemoryStore:
             CREATE INDEX IF NOT EXISTS idx_track_agent
                 ON agent_track_records(agent_name);
         """)
+        # Auto-migrate: add embedding column if missing
+        try:
+            self._conn.execute("ALTER TABLE decisions ADD COLUMN embedding BLOB")
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
         self._conn.commit()
 
-    def store_decision(self, decision: Decision, question: str, context: Optional[str] = None) -> DecisionRecord:
+    def store_decision(self, decision: Decision, question: str, context: Optional[str] = None, embedding: Optional[list[float]] = None) -> DecisionRecord:
         """Store a completed decision and its agent votes."""
         keywords = extract_keywords(question + " " + (context or ""))
         votes_json = json.dumps([
@@ -113,6 +123,11 @@ class DecisionMemoryStore:
             }
             for v in decision.votes
         ])
+
+        # Pack embedding to bytes if provided
+        embedding_blob = None
+        if embedding is not None:
+            embedding_blob = struct.pack(f"{len(embedding)}f", *embedding)
 
         record = DecisionRecord(
             request_id=decision.request_id,
@@ -132,13 +147,14 @@ class DecisionMemoryStore:
             """INSERT OR REPLACE INTO decisions
                (request_id, question, context, department, outcome, position,
                 confidence, summary, votes_json, timestamp, feedback_correct,
-                feedback_notes, keywords)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                feedback_notes, keywords, embedding)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 record.request_id, record.question, record.context,
                 record.department, record.outcome, record.position,
                 record.confidence, record.summary, record.votes_json,
                 record.timestamp, None, None, record.keywords,
+                embedding_blob,
             ),
         )
 
@@ -187,21 +203,46 @@ class DecisionMemoryStore:
         self._conn.commit()
         return True
 
-    def find_similar(self, question: str, context: Optional[str] = None, limit: int = 5) -> list[DecisionRecord]:
-        """Find past decisions similar to a given question using keyword matching."""
-        query_keywords = extract_keywords(question + " " + (context or ""))
-        if not query_keywords:
-            return []
+    def find_similar(
+        self,
+        question: str,
+        context: Optional[str] = None,
+        limit: int = 5,
+        query_embedding: Optional[list[float]] = None,
+    ) -> list[DecisionRecord]:
+        """Find past decisions similar to a given question.
 
+        If query_embedding is provided, uses cosine similarity on stored embeddings.
+        Falls back to keyword Jaccard matching for rows without embeddings or
+        when no query_embedding is given.
+        """
         cursor = self._conn.execute(
             "SELECT * FROM decisions ORDER BY timestamp DESC LIMIT 100"
         )
         rows = cursor.fetchall()
+        if not rows:
+            return []
 
-        scored = []
+        query_keywords = extract_keywords(question + " " + (context or ""))
+        query_vec = None
+        if query_embedding is not None:
+            query_vec = np.array(query_embedding, dtype=np.float32)
+
+        scored: list[tuple[float, sqlite3.Row]] = []
         for row in rows:
-            stored_keywords = row["keywords"].split() if row["keywords"] else []
-            score = keyword_similarity(query_keywords, stored_keywords)
+            score = 0.0
+            stored_blob = row["embedding"] if "embedding" in row.keys() else None
+
+            if query_vec is not None and stored_blob is not None:
+                from .embeddings import cosine_similarity
+                stored_vec = np.frombuffer(stored_blob, dtype=np.float32).copy()
+                score = cosine_similarity(query_vec, stored_vec)
+            else:
+                # Keyword fallback
+                stored_keywords = row["keywords"].split() if row["keywords"] else []
+                if query_keywords and stored_keywords:
+                    score = keyword_similarity(query_keywords, stored_keywords)
+
             if score > 0.1:
                 scored.append((score, row))
 
@@ -226,6 +267,10 @@ class DecisionMemoryStore:
             ))
 
         return results
+
+    def _find_similar_keywords(self, question: str, context: Optional[str] = None, limit: int = 5) -> list[DecisionRecord]:
+        """Legacy keyword-only similarity search."""
+        return self.find_similar(question, context, limit, query_embedding=None)
 
     def get_agent_track_record(self, agent_name: str) -> dict:
         """Get an agent's decision track record."""

@@ -602,53 +602,77 @@ ALL_AGENTS = {
 DEPARTMENT_NAMES = list(ALL_AGENTS.keys())
 
 
+DEPARTMENT_DESCRIPTIONS: dict[str, str] = {
+    "Strategy": "long-term planning, market positioning, competitive strategy, pivots, growth direction",
+    "Product": "product roadmap, user experience, feature prioritization, MVP scoping, design systems",
+    "Marketing": "brand strategy, content marketing, social media, customer acquisition, SEO, campaigns",
+    "Research": "market research, competitor analysis, trend analysis, academic literature, fact verification",
+    "Finance": "budgets, pricing, revenue, costs, fundraising, financial risk, ROI, unit economics",
+    "Engineering": "architecture, technical debt, infrastructure, security, build vs buy, scalability",
+    "Legal": "compliance, contracts, IP, licensing, regulatory, data privacy, liability",
+    "Operations": "process optimization, hiring, HR, supply chain, organizational design, OKRs",
+    "Sales": "sales strategy, pipeline management, enterprise deals, customer success, retention",
+    "Creative": "visual identity, campaign concepts, brand storytelling, content strategy, creative direction",
+}
+
+
 def create_strategy_dept(**kwargs) -> Department:
     """Create a Strategy department with 5 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Strategy"])
     return Department(name="Strategy", agents=STRATEGY_AGENTS, **kwargs)
 
 
 def create_product_dept(**kwargs) -> Department:
     """Create a Product department with 5 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Product"])
     return Department(name="Product", agents=PRODUCT_AGENTS, **kwargs)
 
 
 def create_marketing_dept(**kwargs) -> Department:
     """Create a Marketing department with 4 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Marketing"])
     return Department(name="Marketing", agents=MARKETING_AGENTS, **kwargs)
 
 
 def create_research_dept(**kwargs) -> Department:
     """Create a Research department with 4 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Research"])
     return Department(name="Research", agents=RESEARCH_AGENTS, **kwargs)
 
 
 def create_finance_dept(**kwargs) -> Department:
     """Create a Finance department with 5 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Finance"])
     return Department(name="Finance", agents=FINANCE_AGENTS, **kwargs)
 
 
 def create_engineering_dept(**kwargs) -> Department:
     """Create an Engineering department with 5 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Engineering"])
     return Department(name="Engineering", agents=ENGINEERING_AGENTS, **kwargs)
 
 
 def create_legal_dept(**kwargs) -> Department:
     """Create a Legal department with 4 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Legal"])
     return Department(name="Legal", agents=LEGAL_AGENTS, **kwargs)
 
 
 def create_operations_dept(**kwargs) -> Department:
     """Create an Operations department with 4 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Operations"])
     return Department(name="Operations", agents=OPERATIONS_AGENTS, **kwargs)
 
 
 def create_sales_dept(**kwargs) -> Department:
     """Create a Sales department with 4 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Sales"])
     return Department(name="Sales", agents=SALES_AGENTS, **kwargs)
 
 
 def create_creative_dept(**kwargs) -> Department:
     """Create a Creative department with 3 agents."""
+    kwargs.setdefault("description", DEPARTMENT_DESCRIPTIONS["Creative"])
     return Department(name="Creative", agents=CREATIVE_AGENTS, **kwargs)
 
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "swarm-agency"
-version = "0.3.0"
+version = "1.0.0"
 description = "43 AI personas across 10 departments — use as markdown rules or as a multi-model debate engine"
 readme = "README.md"
 license = "MIT"
@@ -34,12 +34,15 @@ classifiers = [
 ]
 dependencies = [
     "httpx>=0.24.0",
+    "numpy>=1.24.0",
     "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
 cli = ["rich>=13.0.0"]
 web = ["streamlit>=1.30.0"]
+api = ["fastapi>=0.100.0", "uvicorn>=0.20.0", "sse-starlette>=1.6.0"]
+dspy = ["dspy-ai>=2.5.0"]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",

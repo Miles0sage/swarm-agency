@@ -1,11 +1,13 @@
 """CLI interface for swarm-agency.
 
 A polished Rich-powered terminal UI showing agents debating in real-time.
+Supports both one-shot questions and interactive chat mode.
 """
 
 import argparse
 import asyncio
 import json
+import os
 import sys
 import time
 
@@ -323,15 +325,16 @@ def _list_agents():
 
 # ── Live debate with progress ────────────────────────────────────────
 
-def _run_live_with_progress(question, context, department, api_key, base_url, memory, quiet=False):
+def _run_live_with_progress(question, context, department, api_key, base_url, memory, provider=None, quiet=False, rounds=1, stream=False, tools=False):
     """Run a live debate with Rich progress display."""
+    provider = provider or "dashscope"
+    families = "7" if provider == "openrouter" else "5"
+
     try:
         if quiet:
             raise ImportError("skip Rich for JSON output")
 
         from rich.console import Console
-        from rich.live import Live
-        from rich.spinner import Spinner
         from rich.text import Text
         from rich.panel import Panel
 
@@ -340,12 +343,11 @@ def _run_live_with_progress(question, context, department, api_key, base_url, me
         console.print(Panel(
             Text(question, style="bold white"),
             title="[bold cyan]DEBATING[/]",
-            subtitle="[dim]Agents deliberating across 5 model families...[/]",
+            subtitle=f"[dim]Agents deliberating across {families} model families ({provider})...[/]",
             border_style="cyan",
             padding=(1, 3),
         ))
 
-        # Show spinner during API calls
         with console.status(
             "[bold cyan]Agents are deliberating...[/]",
             spinner="dots",
@@ -355,6 +357,7 @@ def _run_live_with_progress(question, context, department, api_key, base_url, me
                 api_key=api_key,
                 base_url=base_url,
                 memory_enabled=memory,
+                provider=provider,
             )
             for dept in create_full_agency_departments():
                 agency.add_department(dept)
@@ -377,12 +380,12 @@ def _run_live_with_progress(question, context, department, api_key, base_url, me
         return decision
 
     except ImportError:
-        # No Rich — run without progress
         agency = Agency(
             name="SwarmAgency",
             api_key=api_key,
             base_url=base_url,
             memory_enabled=memory,
+            provider=provider,
         )
         for dept in create_full_agency_departments():
             agency.add_department(dept)
@@ -403,13 +406,85 @@ def _run_live_with_progress(question, context, department, api_key, base_url, me
 
 # ── Main ──────────────────────────────────────────────────────────────
 
+def _load_config_env():
+    """Load API key from ~/.swarm-agency.env if it exists."""
+    config_file = os.path.expanduser("~/.swarm-agency.env")
+    if os.path.exists(config_file):
+        try:
+            with open(config_file) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, _, value = line.partition("=")
+                        key, value = key.strip(), value.strip()
+                        if key and value and key not in os.environ:
+                            os.environ[key] = value
+        except OSError:
+            pass
+
+
 def main():
+    # Load config before anything else
+    _load_config_env()
+
+    # Check for subcommands first (init, chat)
+    if len(sys.argv) > 1 and sys.argv[1] in ("init", "setup"):
+        from .setup import run_setup
+        run_setup()
+        return
+
+    if len(sys.argv) > 1 and sys.argv[1] in ("serve", "server", "api"):
+        import uvicorn
+        port = 8000
+        if len(sys.argv) > 2:
+            try:
+                port = int(sys.argv[2])
+            except ValueError:
+                pass
+        print(f"\n  Starting Swarm Agency API server on http://0.0.0.0:{port}")
+        print(f"  Open http://localhost:{port} for the web UI")
+        print(f"  API docs: http://localhost:{port}/docs\n")
+        uvicorn.run("swarm_agency.server:app", host="0.0.0.0", port=port, reload=False)
+        return
+
+    if len(sys.argv) > 1 and sys.argv[1] == "chat":
+        # Parse chat-specific args
+        chat_parser = argparse.ArgumentParser(prog="swarm-agency chat")
+        chat_parser.add_argument("--api-key", help="API key")
+        chat_parser.add_argument("--base-url", help="API base URL override")
+        chat_parser.add_argument("--memory", action="store_true", help="Enable decision memory")
+        chat_parser.add_argument(
+            "--provider", "-p",
+            choices=["dashscope", "openrouter"],
+            help="Model provider (default: from settings or dashscope)",
+        )
+        chat_parser.add_argument(
+            "--department", "-d",
+            choices=DEPARTMENTS,
+            help="Start focused on a department",
+        )
+        chat_args = chat_parser.parse_args(sys.argv[2:])
+
+        from .chat import run_chat
+        run_chat(
+            api_key=chat_args.api_key,
+            base_url=chat_args.base_url,
+            memory=chat_args.memory,
+            department=chat_args.department,
+            provider=chat_args.provider,
+        )
+        return
+
     parser = argparse.ArgumentParser(
         prog="swarm-agency",
         description="43 AI agents debate your business decisions across 5 model families.",
-        epilog="Examples:\n"
+        epilog="Commands:\n"
+               "  swarm-agency init                          Setup API key\n"
+               "  swarm-agency chat                          Interactive mode\n"
+               "\n"
+               "One-shot:\n"
                "  swarm-agency \"Should we raise a Series A?\"\n"
-               "  swarm-agency \"Open-source our SDK?\" --department Engineering\n"
+               "  swarm-agency \"Open-source our SDK?\" -d Engineering\n"
                "  swarm-agency --demo startup-pivot\n"
                "  swarm-agency --agents\n",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -422,8 +497,14 @@ def main():
         help="Target a specific department (default: all 10)",
     )
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
-    parser.add_argument("--api-key", help="DashScope API key (or set ALIBABA_CODING_API_KEY)")
+    parser.add_argument("--api-key", help="API key (or set env var for your provider)")
     parser.add_argument("--base-url", help="API base URL override")
+    parser.add_argument(
+        "--provider", "-p",
+        choices=["dashscope", "openrouter"],
+        default="dashscope",
+        help="Model provider: dashscope (default) or openrouter",
+    )
     parser.add_argument(
         "--demo",
         nargs="?",
@@ -451,6 +532,56 @@ def main():
         const="__all__",
         metavar="DEPARTMENT",
         help="Show decision history. Optionally filter by department.",
+    )
+    parser.add_argument(
+        "--rounds", "-r",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Multi-round debate: agents revise after seeing others' votes (default: 1)",
+    )
+    parser.add_argument(
+        "--stream", action="store_true",
+        help="Stream agent votes as they arrive",
+    )
+    parser.add_argument(
+        "--tools", action="store_true",
+        help="Enable tool-calling (agents can use calculator, ROI, etc.)",
+    )
+    parser.add_argument(
+        "--template",
+        choices=["hire", "pricing", "launch", "vendor", "pivot"],
+        help="Use a decision template instead of a raw question.",
+    )
+    parser.add_argument(
+        "--candidate", help="Candidate name (for hire template)",
+    )
+    parser.add_argument(
+        "--role", help="Role (for hire template)",
+    )
+    parser.add_argument(
+        "--product", help="Product name (for launch/pricing templates)",
+    )
+    parser.add_argument(
+        "--market", help="Target market (for launch template)",
+    )
+    parser.add_argument(
+        "--current-price", help="Current price (for pricing template)",
+    )
+    parser.add_argument(
+        "--new-price", help="New price (for pricing template)",
+    )
+    parser.add_argument(
+        "--vendor-name", help="Vendor name (for vendor template)",
+    )
+    parser.add_argument(
+        "--service", help="Service type (for vendor template)",
+    )
+    parser.add_argument(
+        "--current-direction", help="Current direction (for pivot template)",
+    )
+    parser.add_argument(
+        "--new-direction", help="New direction (for pivot template)",
     )
 
     args = parser.parse_args()
@@ -517,6 +648,56 @@ def main():
                 print(f"  {r.request_id[:12]}  {r.department:12s}  {r.outcome:10s}  {r.position:10s}  correct={correct_str}  {r.question[:50]}")
         return
 
+    # ── Template mode ──
+    if args.template:
+        from .templates import create_request
+        template_kwargs = {}
+        if args.template == "hire":
+            if args.candidate: template_kwargs["candidate"] = args.candidate
+            if args.role: template_kwargs["role"] = args.role
+        elif args.template == "pricing":
+            if args.product: template_kwargs["product"] = args.product
+            if args.current_price: template_kwargs["current_price"] = args.current_price
+            if args.new_price: template_kwargs["new_price"] = args.new_price
+        elif args.template == "launch":
+            if args.product: template_kwargs["product"] = args.product
+            if args.market: template_kwargs["market"] = args.market
+        elif args.template == "vendor":
+            if args.vendor_name: template_kwargs["vendor"] = args.vendor_name
+            if args.service: template_kwargs["service"] = args.service
+        elif args.template == "pivot":
+            if args.current_direction: template_kwargs["current_direction"] = args.current_direction
+            if args.new_direction: template_kwargs["new_direction"] = args.new_direction
+
+        try:
+            tmpl_request = create_request(args.template, context=args.context, **template_kwargs)
+        except ValueError as e:
+            print(f"Template error: {e}")
+            sys.exit(1)
+
+        question = tmpl_request.question
+        context = tmpl_request.context
+        decision = _run_live_with_progress(
+            question=question,
+            context=context,
+            department=args.department,
+            api_key=args.api_key,
+            base_url=args.base_url,
+            memory=args.memory,
+            provider=args.provider,
+            quiet=args.json,
+        )
+        mode_label = f"Template: {args.template}"
+
+        if args.json:
+            print(json.dumps(decision.to_dict(), indent=2))
+            return
+        try:
+            _render_rich(question, context or "", decision, mode_label)
+        except ImportError:
+            _render_plain(question, context or "", decision)
+        return
+
     # ── Demo mode ──
     if args.demo is not None:
         if args.demo == "__list__":
@@ -525,9 +706,17 @@ def main():
         question, context, decision = _run_demo(args.demo)
         mode_label = "Demo"
     else:
-        # ── Live debate ──
+        # ── No question? Launch chat mode ──
         if not args.question:
-            parser.error("question is required (or use --demo)")
+            from .chat import run_chat
+            run_chat(
+                api_key=args.api_key,
+                base_url=args.base_url,
+                memory=args.memory,
+                department=args.department,
+            )
+            return
+
         question = args.question
         context = args.context
         decision = _run_live_with_progress(
@@ -537,9 +726,15 @@ def main():
             api_key=args.api_key,
             base_url=args.base_url,
             memory=args.memory,
+            provider=args.provider,
             quiet=args.json,
+            rounds=args.rounds,
+            stream=args.stream,
+            tools=args.tools,
         )
         mode_label = "Live"
+        if args.rounds > 1:
+            mode_label = f"Live ({args.rounds} rounds)"
 
     # ── Output ──
     if args.json:

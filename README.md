@@ -6,7 +6,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://github.com/Miles0sage/swarm-agency/actions/workflows/ci.yml/badge.svg)](https://github.com/Miles0sage/swarm-agency/actions)
 
-**Zero production-ready multi-model debate frameworks exist.** CrewAI (46k stars) and AutoGen (55k) run on one model. This framework runs 5 model families in parallel — different models produce uncorrelated analysis, which means better signal.
+**Zero production-ready multi-model debate frameworks exist.** CrewAI (46k stars) and AutoGen (55k) run on one model. This framework runs 5 model families in parallel — different models produce uncorrelated analysis, which means better signal. Now with **multi-round debate**, **semantic memory**, **streaming**, **tool-calling agents**, and **auto-department routing**.
 
 Cost: **$10/mo flat** (Alibaba DashScope Coding Plan) = unlimited debates.
 
@@ -209,15 +209,142 @@ swarm-agency uses **5 model families** (GLM, Qwen, Kimi, MiniMax) through one AP
 
 ---
 
-## Decision Memory
+## Decision Memory (Semantic Search)
 
-See [Flow 3](#flow-3-i-want-institutional-memory-10-minutes) for usage. When `--memory` is enabled, each agent's prompt automatically includes:
+When `--memory` is enabled, decisions are stored with **Gemini embeddings** for semantic search. Each agent's prompt automatically includes:
 
-- **Related past decisions** — similar questions the agency debated before, with outcomes
+- **Related past decisions** — found by meaning (not just keywords) using cosine similarity on 3072-dim embeddings
 - **Agent track record** — individual accuracy stats so agents can self-calibrate
 - **Outcome feedback** — which past decisions turned out correct or incorrect
+- **Weighted voting** — agents with better track records get more influence (weight range: 0.5-1.0)
 
-Agents with poor track records automatically lower their confidence. Agents who've been consistently right become more assertive. The system self-calibrates over time.
+```bash
+# Set your free Gemini API key for semantic search
+export GEMINI_API_KEY=your_key  # Free tier from Google AI Studio
+
+# Decisions are now matched by meaning, not just keywords
+swarm-agency "Should we enter the European market?" --memory
+```
+
+---
+
+## Multi-Round Debate
+
+Agents see each other's votes and can **revise their positions** in subsequent rounds. Stops automatically when consensus is reached, no one changes position, or confidence stabilizes.
+
+```bash
+# 3-round debate — agents deliberate, see results, and revise
+swarm-agency "Should we acquire CompetitorX?" --rounds 3
+
+# Combine with memory for maximum intelligence
+swarm-agency "Cut engineering headcount by 20%?" --rounds 2 --memory
+```
+
+```python
+from swarm_agency import multi_round_debate, create_strategy_dept, AgencyRequest
+
+dept = create_strategy_dept(api_key="...", base_url="...")
+request = AgencyRequest(request_id="q1", question="Should we pivot?")
+
+decision, rounds = await multi_round_debate(dept, request, max_rounds=3)
+print(f"Converged in {len(rounds)} rounds")
+for r in rounds:
+    print(f"  Round {r.round_number}: {r.outcome} ({r.changes} position changes)")
+```
+
+---
+
+## Streaming Debates
+
+See agent votes **as they arrive** instead of waiting for all 43 to finish.
+
+```python
+from swarm_agency import stream_debate, AgencyRequest
+from swarm_agency.presets import STRATEGY_AGENTS
+
+request = AgencyRequest(request_id="s1", question="Launch now?")
+
+async for event in stream_debate(STRATEGY_AGENTS, request, api_key, base_url):
+    print(f"[{event.votes_so_far}/{event.total_agents}] "
+          f"{event.agent_name}: {event.vote.position} ({event.vote.confidence:.0%})")
+```
+
+---
+
+## Agent Tools
+
+Agents can optionally use **built-in tools** during deliberation: calculator, ROI, break-even analysis, compound growth, and percentage calculations.
+
+```bash
+swarm-agency "Is this acquisition worth $2M?" --tools
+```
+
+```python
+from swarm_agency.tools import default_registry
+
+# See available tools
+print(default_registry.list_tools())
+# ['calculate', 'percentage', 'compound_growth', 'roi', 'break_even']
+
+# Register custom tools
+from swarm_agency.tools import ToolDefinition
+default_registry.register(ToolDefinition(
+    name="lookup_revenue",
+    description="Look up company revenue",
+    parameters={"company": "Company name"},
+    handler=lambda company="": f"Revenue for {company}: $10M ARR",
+))
+```
+
+---
+
+## Decision Templates
+
+Pre-built question formats for common decisions:
+
+```bash
+swarm-agency --template hire --candidate "Jane" --role "CTO"
+swarm-agency --template pricing --product "Pro Plan" --current-price "$29" --new-price "$49"
+swarm-agency --template launch --product "Mobile App" --market "Europe"
+swarm-agency --template vendor --vendor-name "AWS" --service "cloud hosting"
+swarm-agency --template pivot --current-direction "B2C" --new-direction "B2B"
+```
+
+---
+
+## Auto-Department Routing
+
+When no department is specified and `GEMINI_API_KEY` is set, questions are **automatically routed** to the most relevant 1-3 departments instead of consulting all 43 agents.
+
+```bash
+# Automatically routes to Legal + Strategy (not all 10 departments)
+swarm-agency "Should we file a patent?" --memory
+
+# Force a specific department
+swarm-agency "Should we file a patent?" -d Legal
+```
+
+---
+
+## Prompt Optimization
+
+The `PromptOptimizer` analyzes feedback patterns and generates targeted prompt amendments for underperforming agents.
+
+```python
+from swarm_agency import PromptOptimizer, DecisionMemoryStore
+from swarm_agency.presets import STRATEGY_AGENTS
+
+store = DecisionMemoryStore()
+optimizer = PromptOptimizer(store)
+
+# Optimize all agents based on feedback
+results = optimizer.optimize_all(STRATEGY_AGENTS)
+for r in results:
+    print(f"{r.agent_name}: {r.improvement_notes}")
+
+# Apply optimized prompts
+optimized_agents = optimizer.apply_optimizations(STRATEGY_AGENTS)
+```
 
 ---
 
