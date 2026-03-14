@@ -2,12 +2,87 @@
 
 import json
 import logging
+import re
 
 import httpx
 
 from .types import AgentConfig, AgencyRequest, AgentVote
 
 logger = logging.getLogger("swarm_agency.agent")
+
+
+def _extract_json(text: str) -> dict:
+    """Extract a JSON object from messy LLM output.
+
+    Handles: markdown fences, text before/after JSON, nested braces,
+    truncated JSON, thinking tokens, escaped quotes.
+    """
+    # Strip markdown fences
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
+
+    # Try direct parse first (fastest path)
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Find the outermost { } with brace matching
+    depth = 0
+    start = -1
+    for i, ch in enumerate(cleaned):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}" and depth > 0:
+            depth -= 1
+            if depth == 0:
+                candidate = cleaned[start:i + 1]
+                try:
+                    return json.loads(candidate)
+                except json.JSONDecodeError:
+                    continue
+
+    # Brace matching failed — try simple first { to last }
+    json_start = cleaned.find("{")
+    json_end = cleaned.rfind("}")
+    if json_start >= 0 and json_end > json_start:
+        candidate = cleaned[json_start:json_end + 1]
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+
+    # Last resort: regex extract key fields
+    position = "MAYBE"
+    confidence = 0.5
+    reasoning = "Response could not be parsed"
+    factors = []
+
+    pos_match = re.search(r'"position"\s*:\s*"([^"]+)"', cleaned)
+    if pos_match:
+        position = pos_match.group(1)
+    conf_match = re.search(r'"confidence"\s*:\s*([\d.]+)', cleaned)
+    if conf_match:
+        confidence = float(conf_match.group(1))
+    reason_match = re.search(r'"reasoning"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned)
+    if reason_match:
+        reasoning = reason_match.group(1)
+    factors_match = re.search(r'"factors"\s*:\s*\[(.*?)\]', cleaned, re.DOTALL)
+    if factors_match:
+        factors = [f.strip().strip('"') for f in factors_match.group(1).split(",") if f.strip().strip('"')]
+
+    return {
+        "position": position,
+        "confidence": confidence,
+        "reasoning": reasoning,
+        "factors": factors,
+    }
 
 DEFAULT_TIMEOUT = 60.0
 
@@ -79,21 +154,7 @@ async def call_agent(
 
             data = resp.json()
             content = data["choices"][0]["message"]["content"].strip()
-
-            # Strip markdown fences if present
-            if content.startswith("```"):
-                content = content.split("\n", 1)[1] if "\n" in content else content[3:]
-                if content.endswith("```"):
-                    content = content[:-3]
-                content = content.strip()
-
-            # Extract JSON object even if surrounded by extra text
-            json_start = content.find("{")
-            json_end = content.rfind("}") + 1
-            if json_start >= 0 and json_end > json_start:
-                content = content[json_start:json_end]
-
-            parsed = json.loads(content)
+            parsed = _extract_json(content)
 
             return AgentVote(
                 agent_name=agent.name,
