@@ -323,6 +323,74 @@ def _list_agents():
                 print(f"  {agent.name} ({agent.role}) - {agent.model}")
 
 
+# ── Transcript save/replay ────────────────────────────────────────────
+
+LAST_DEBATE_FILE = os.path.expanduser("~/.swarm-agency/last_debate.json")
+
+
+def _save_last_debate(question, context, decision, mode_label):
+    """Save the last debate for --last replay."""
+    import os
+    from pathlib import Path
+    Path(LAST_DEBATE_FILE).parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        "question": question,
+        "context": context,
+        "mode_label": mode_label,
+        "decision": decision.to_dict(),
+    }
+    with open(LAST_DEBATE_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def _show_last_debate(json_mode=False):
+    """Replay the last debate's full transcript."""
+    if not os.path.exists(LAST_DEBATE_FILE):
+        print("No previous debate found. Run a debate first.")
+        return
+
+    with open(LAST_DEBATE_FILE) as f:
+        data = json.load(f)
+
+    from .types import AgentVote, Decision
+    d = data["decision"]
+    decision = Decision(
+        request_id=d["request_id"],
+        department=d["department"],
+        outcome=d["outcome"],
+        position=d["position"],
+        confidence=d["confidence"],
+        votes=[AgentVote(**v) for v in d["votes"]],
+        summary=d["summary"],
+        dissenting_views=d.get("dissenting_views", []),
+        duration_seconds=d.get("duration_seconds", 0),
+    )
+
+    if json_mode:
+        print(json.dumps(d, indent=2))
+        return
+
+    # Show verdict first
+    from .verdict import decision_to_verdict, format_verdict_rich, format_verdict_text
+    verdict = decision_to_verdict(decision)
+    try:
+        format_verdict_rich(verdict)
+    except ImportError:
+        print(format_verdict_text(verdict))
+
+    # Then full debate
+    try:
+        from rich.console import Console
+        Console().print("\n[dim]──── Full Agent Deliberation ────[/]\n")
+    except ImportError:
+        print("\n---- Full Agent Deliberation ----\n")
+
+    try:
+        _render_rich(data["question"], data["context"], decision, data["mode_label"])
+    except ImportError:
+        _render_plain(data["question"], data["context"], decision)
+
+
 # ── Live debate with progress ────────────────────────────────────────
 
 def _run_live_with_progress(question, context, department, api_key, base_url, memory, provider=None, quiet=False, rounds=1, stream=False, tools=False):
@@ -521,6 +589,10 @@ def main():
         help="List all 43 agents across 10 departments",
     )
     parser.add_argument(
+        "--last", action="store_true",
+        help="Replay the last debate with full agent transcript",
+    )
+    parser.add_argument(
         "--memory", action="store_true",
         help="Enable decision memory (SQLite)",
     )
@@ -597,6 +669,11 @@ def main():
     # ── Agents list ──
     if args.agents:
         _list_agents()
+        return
+
+    # ── Last debate replay ──
+    if args.last:
+        _show_last_debate(json_mode=args.json)
         return
 
     # ── Feedback mode ──
@@ -779,20 +856,35 @@ def main():
         print(json.dumps(decision.to_dict(), indent=2))
         return
 
+    # Save transcript for --last replay
+    _save_last_debate(question, context or "", decision, mode_label)
+
+    # Always show the verdict first
+    from .verdict import decision_to_verdict, format_verdict_rich, format_verdict_text
+    verdict = decision_to_verdict(decision)
+    try:
+        format_verdict_rich(verdict)
+    except ImportError:
+        print(format_verdict_text(verdict))
+
     if args.verbose:
-        # Full debate view
+        # Then show the full debate below
+        try:
+            from rich.console import Console
+            Console().print("\n[dim]──── Full Agent Deliberation ────[/]\n")
+        except ImportError:
+            print("\n---- Full Agent Deliberation ----\n")
         try:
             _render_rich(question, context or "", decision, mode_label)
         except ImportError:
             _render_plain(question, context or "", decision)
     else:
-        # Clean verdict (new default for live debates)
-        from .verdict import decision_to_verdict, format_verdict_rich, format_verdict_text
-        verdict = decision_to_verdict(decision)
+        # Hint to see full debate
         try:
-            format_verdict_rich(verdict)
+            from rich.console import Console
+            Console().print("  [dim]See full debate:[/] [bold]swarm-agency --last[/]\n")
         except ImportError:
-            print(format_verdict_text(verdict))
+            print("  See full debate: swarm-agency --last\n")
 
 
 if __name__ == "__main__":
