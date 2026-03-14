@@ -1,164 +1,166 @@
-"""Streamlit web UI for swarm-agency.
+"""Streamlit web UI for swarm-agency v1.0.
 
+Pressure-test any decision from multiple AI perspectives.
 Run with: streamlit run app.py
-No terminal knowledge needed — just open the browser.
 """
+
+import asyncio
+import json
+import uuid
 
 import streamlit as st
 
 from swarm_agency.demos import DEMO_SCENARIOS, DEMO_LIST
-from swarm_agency.types import Decision
+from swarm_agency.types import Decision, AgentVote
+from swarm_agency.verdict import decision_to_verdict, Verdict
 
 # ── Page config ──────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="Swarm Agency — AI Board of Directors",
-    page_icon="🏛️",
-    layout="wide",
+    page_title="Swarm Agency — Pressure-Test Your Decisions",
+    page_icon="⚡",
+    layout="centered",
 )
 
-# ── Custom CSS ───────────────────────────────────────────────────────
+# ── CSS ──────────────────────────────────────────────────────────────
 
 st.markdown("""
 <style>
-    .stApp { max-width: 1100px; margin: 0 auto; }
-    .agent-card {
-        border: 1px solid #333;
-        border-radius: 12px;
-        padding: 16px;
-        margin: 8px 0;
+    .stApp { max-width: 800px; margin: 0 auto; }
+    .verdict-box {
+        text-align: center; padding: 24px; border-radius: 16px;
+        margin: 16px 0; font-size: 1.1rem;
     }
-    .approve { border-left: 4px solid #22c55e; }
-    .reject { border-left: 4px solid #ef4444; }
-    .neutral { border-left: 4px solid #eab308; }
-    .big-result {
-        font-size: 2rem;
-        font-weight: bold;
-        text-align: center;
-        padding: 20px;
+    .verdict-yes { background: #0d3320; border: 2px solid #22c55e; }
+    .verdict-no { background: #3b1114; border: 2px solid #ef4444; }
+    .verdict-maybe { background: #3b2f08; border: 2px solid #eab308; }
+    .verdict-answer { font-size: 2.5rem; font-weight: bold; }
+    .reason-card {
+        padding: 12px 16px; margin: 6px 0; border-radius: 8px;
+        background: #1a1a2e; border-left: 3px solid #444;
     }
+    .risk-card {
+        padding: 12px 16px; margin: 6px 0; border-radius: 8px;
+        background: #2d1f00; border-left: 3px solid #eab308;
+    }
+    .agent-row {
+        padding: 8px 12px; margin: 4px 0; border-radius: 6px;
+        background: #111827; font-size: 0.9rem;
+    }
+    .vote-bar { display: flex; height: 24px; border-radius: 6px; overflow: hidden; margin: 8px 0; }
+    .vote-yes { background: #22c55e; }
+    .vote-no { background: #ef4444; }
+    .vote-maybe { background: #eab308; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Render functions ─────────────────────────────────────────────────
+def _esc(text: str) -> str:
+    """Escape dollar signs to prevent Streamlit LaTeX rendering."""
+    return text.replace("$", "&#36;")
 
-def _render_debate(question: str, context: str, department: str, decision: Decision):
-    """Render a debate result with cards and vote breakdown."""
 
-    # Question banner
-    st.markdown(f"### {question}")
-    if context:
-        st.caption(f"Context: {context}")
-    st.markdown(f"**Department:** {department} · **Agents:** {len(decision.votes)} · **Models:** 5")
-    st.markdown("---")
+# ── Render verdict ───────────────────────────────────────────────────
 
-    # Decision outcome — big banner
-    outcome_colors = {
-        "CONSENSUS": "green",
-        "MAJORITY": "orange",
-        "SPLIT": "red",
-        "DEADLOCK": "gray",
-    }
-    outcome_emoji = {
-        "CONSENSUS": "✅",
-        "MAJORITY": "📊",
-        "SPLIT": "⚖️",
-        "DEADLOCK": "🔒",
-    }
-    color = outcome_colors.get(decision.outcome, "gray")
-    emoji = outcome_emoji.get(decision.outcome, "")
+def _render_verdict(question: str, context: str, decision: Decision, show_agents: bool = False):
+    """Render the clean verdict view — what users actually want to see."""
+    verdict = decision_to_verdict(decision)
 
+    # Answer colors
+    color_class = {"YES": "verdict-yes", "NO": "verdict-no"}.get(verdict.answer, "verdict-maybe")
+    color_hex = {"YES": "#22c55e", "NO": "#ef4444"}.get(verdict.answer, "#eab308")
+
+    # Big verdict banner
     st.markdown(
-        f'<div class="big-result" style="color: {color};">'
-        f'{emoji} {decision.outcome}: {decision.position}'
+        f'<div class="verdict-box {color_class}">'
+        f'<div class="verdict-answer" style="color: {color_hex};">{verdict.answer}</div>'
+        f'<div style="color: #aaa;">{verdict.confidence_label} confidence &middot; {verdict.confidence:.0%}</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
 
-    # Confidence bar
-    st.progress(decision.confidence, text=f"Overall confidence: {decision.confidence:.0%}")
+    # One-liner
+    st.markdown(f"**{_esc(verdict.one_liner)}**")
 
-    # Summary (escape $ to prevent LaTeX)
-    st.markdown(f"**Summary:** {decision.summary.replace('$', '&#36;')}", unsafe_allow_html=True)
+    # Vote bar
+    total = verdict.agents_for + verdict.agents_against + verdict.agents_undecided
+    if total > 0:
+        pct_yes = verdict.agents_for / total * 100
+        pct_no = verdict.agents_against / total * 100
+        pct_maybe = verdict.agents_undecided / total * 100
+        st.markdown(
+            f'<div class="vote-bar">'
+            f'<div class="vote-yes" style="width:{pct_yes}%"></div>'
+            f'<div class="vote-no" style="width:{pct_no}%"></div>'
+            f'<div class="vote-maybe" style="width:{pct_maybe}%"></div>'
+            f'</div>'
+            f'<div style="display:flex;justify-content:space-between;font-size:0.85rem;color:#888;">'
+            f'<span>🟢 {verdict.agents_for} for</span>'
+            f'<span>🔴 {verdict.agents_against} against</span>'
+            f'<span>🟡 {verdict.agents_undecided} undecided</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
     st.markdown("---")
 
-    # Agent deliberation cards
-    st.subheader("Agent Deliberation")
-
-    for vote in decision.votes:
-        pos_class = vote.position.lower()
-        if pos_class not in ("approve", "reject", "neutral"):
-            pos_class = "neutral"
-
-        pos_emoji = {"APPROVE": "👍", "REJECT": "👎", "NEUTRAL": "🤷"}.get(vote.position, "❓")
-
-        with st.container():
-            # Escape dollar signs to prevent Streamlit LaTeX rendering
-            reasoning = vote.reasoning.replace("$", "&#36;")
+    # Top reasons
+    if verdict.top_reasons:
+        st.markdown("#### Why")
+        for i, reason in enumerate(verdict.top_reasons, 1):
             st.markdown(
-                f'<div class="agent-card {pos_class}">'
-                f'<strong>{vote.agent_name}</strong> · {pos_emoji} {vote.position} · '
-                f'Confidence: {vote.confidence:.0%}'
-                f'<br><span style="color: #888;">{reasoning}</span>'
-                f'</div>',
+                f'<div class="reason-card"><strong>{i}.</strong> {_esc(reason)}</div>',
                 unsafe_allow_html=True,
             )
 
-    # Vote tally
-    st.markdown("---")
-    st.subheader("Vote Breakdown")
+    # Top risk
+    st.markdown("#### Top Risk")
+    st.markdown(
+        f'<div class="risk-card">⚠️ {_esc(verdict.top_risk)}</div>',
+        unsafe_allow_html=True,
+    )
 
-    counts = {}
-    for vote in decision.votes:
-        counts[vote.position] = counts.get(vote.position, 0) + 1
+    # Expandable: full agent deliberation
+    if show_agents and decision.votes:
+        with st.expander(f"See all {len(decision.votes)} agent votes", expanded=False):
+            for vote in decision.votes:
+                pos_emoji = {"YES": "🟢", "APPROVE": "🟢", "NO": "🔴", "REJECT": "🔴"}.get(
+                    vote.position.upper(), "🟡"
+                )
+                reasoning = _esc(vote.reasoning[:200])
+                st.markdown(
+                    f'<div class="agent-row">'
+                    f'{pos_emoji} <strong>{vote.agent_name}</strong> '
+                    f'&middot; {vote.position} &middot; {vote.confidence:.0%}'
+                    f'<br><span style="color:#888;">{reasoning}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
-    tally_cols = st.columns(len(counts))
-    position_colors = {"APPROVE": "green", "REJECT": "red", "NEUTRAL": "orange"}
-    for i, (pos, count) in enumerate(counts.items()):
-        with tally_cols[i]:
-            st.metric(pos, count)
+        # Dissenting views
+        if decision.dissenting_views:
+            with st.expander("Dissenting views", expanded=False):
+                for view in decision.dissenting_views:
+                    st.markdown(
+                        f'<div class="risk-card">{_esc(view)}</div>',
+                        unsafe_allow_html=True,
+                    )
 
-    # Dissenting views
-    if decision.dissenting_views:
-        st.markdown("---")
-        st.subheader("Dissenting Views")
-        for view in decision.dissenting_views:
-            # Use HTML entity to fully prevent Streamlit LaTeX rendering
-            escaped = view.replace("$", "&#36;")
-            st.markdown(
-                f'<div style="background-color: #2d2000; border-left: 4px solid #eab308; '
-                f'padding: 12px 16px; border-radius: 4px; margin: 8px 0;">'
-                f'{escaped}</div>',
-                unsafe_allow_html=True,
-            )
+    st.caption(f"{verdict.debate_quality} · {len(decision.votes)} agents · {verdict.duration:.1f}s · swarm-agency v1.0")
 
 
-def _run_live_debate(
-    question: str, context: str, department: str, api_key: str,
-    rounds: int = 1, memory: bool = False, sports_mode: bool = False,
-):
-    """Run a live debate via the API."""
-    import asyncio
+# ── Run live debate ──────────────────────────────────────────────────
+
+def _run_live(question: str, context: str, department: str, api_key: str, provider: str = "dashscope"):
+    """Run a live debate and show the verdict."""
     from swarm_agency import Agency, AgencyRequest, create_full_agency_departments
 
     dept_filter = None if department == "All Departments" else department
 
-    agency = Agency(name="WebUI", api_key=api_key.strip(), memory_enabled=memory)
+    agency = Agency(name="WebUI", api_key=api_key.strip(), provider=provider)
+    for dept in create_full_agency_departments():
+        agency.add_department(dept)
 
-    if sports_mode:
-        from swarm_agency.sports import create_sports_departments
-        for dept in create_sports_departments():
-            agency.add_department(dept)
-        agent_count = 10
-        dept_count = 3
-    else:
-        for dept in create_full_agency_departments():
-            agency.add_department(dept)
-        agent_count = 43
-        dept_count = 10
-
-    import uuid
     request = AgencyRequest(
         request_id=f"web-{uuid.uuid4().hex[:8]}",
         question=question,
@@ -166,84 +168,54 @@ def _run_live_debate(
         department=dept_filter,
     )
 
-    label = f"{agent_count} agents across {dept_count} departments"
-    if rounds > 1:
-        label += f" ({rounds} rounds)"
+    with st.spinner("Agents are debating your question across multiple AI models..."):
+        decision = asyncio.run(agency.decide(request))
 
-    if rounds > 1:
-        from swarm_agency.rounds import multi_round_debate
-        with st.spinner(f"{label} deliberating..."):
-            target_depts = list(agency.departments.values())
-            if dept_filter and dept_filter in agency.departments:
-                target_depts = [agency.departments[dept_filter]]
-            # Run multi-round on first matching department
-            decision, round_results = asyncio.run(
-                multi_round_debate(target_depts[0], request, max_rounds=rounds)
-            )
-            st.info(f"Converged in {len(round_results)} round(s). "
-                     + ", ".join(f"R{r.round_number}: {r.outcome}" for r in round_results))
-    else:
-        with st.spinner(f"{label} deliberating..."):
-            decision = asyncio.run(agency.decide(request))
-
-    _render_debate(question, context or "", department, decision)
+    _render_verdict(question, context or "", decision, show_agents=True)
 
 
-# ── Header ───────────────────────────────────────────────────────────
+# ── Main UI ──────────────────────────────────────────────────────────
 
-st.title("Swarm Agency v0.5")
-st.markdown("**43 AI personas debate your business decisions.** Multi-round debate, semantic memory, streaming, tool-calling. Pick a scenario or ask your own.")
-st.markdown("---")
+st.markdown("# ⚡ Swarm Agency")
+st.markdown("**Pressure-test any decision from multiple AI perspectives in under a minute.**")
 
-# ── Sidebar: mode selection ──────────────────────────────────────────
+tab_demo, tab_live = st.tabs(["Try a Demo", "Ask Your Own"])
 
-mode = st.sidebar.radio(
-    "Mode",
-    ["Try a Demo (no API key)", "Ask Your Own Question"],
-    index=0,
-)
+# ── Demo tab ─────────────────────────────────────────────────────────
 
-# ── Demo mode ────────────────────────────────────────────────────────
-
-if mode == "Try a Demo (no API key)":
-    st.subheader("Pick a scenario")
+with tab_demo:
+    st.markdown("Pick a scenario — no API key needed:")
 
     scenario_labels = {
-        "startup-pivot": ("Pivot B2C → B2B?", "Strategy"),
-        "hire-senior": ("Senior vs 2 Juniors?", "Engineering"),
-        "pricing-change": ("Usage-Based Pricing?", "Finance"),
-        "open-source": ("Open-Source Core?", "Engineering"),
-        "remote-vs-office": ("Return to Office?", "Operations"),
+        "startup-pivot": ("🔄 Pivot B2C → B2B?", "Strategy"),
+        "hire-senior": ("👤 Senior vs 2 Juniors?", "Engineering"),
+        "pricing-change": ("💰 Usage-Based Pricing?", "Finance"),
+        "open-source": ("📖 Open-Source Core?", "Strategy"),
+        "remote-vs-office": ("🏢 Return to Office?", "Operations"),
     }
 
     cols = st.columns(len(DEMO_LIST))
-    selected = None
     for i, name in enumerate(DEMO_LIST):
         label, dept = scenario_labels.get(name, (name, "?"))
         with cols[i]:
             if st.button(label, key=f"demo-{name}", use_container_width=True):
-                selected = name
+                st.session_state["selected_demo"] = name
 
-    if selected:
-        st.session_state["selected_demo"] = selected
     chosen = st.session_state.get("selected_demo")
-
     if chosen:
         scenario = DEMO_SCENARIOS[chosen]
-        _render_debate(
-            question=scenario["question"],
-            context=scenario["context"],
-            department=scenario["department"],
-            decision=scenario["decision"],
+        st.markdown(f"**Question:** {scenario['question']}")
+        st.caption(f"Context: {scenario['context']}")
+        _render_verdict(
+            scenario["question"], scenario["context"],
+            scenario["decision"], show_agents=True,
         )
     else:
-        st.info("Click a scenario above to see 5 AI agents debate it.")
+        st.info("Click a scenario above to see AI agents debate it.")
 
-# ── Custom question mode ─────────────────────────────────────────────
+# ── Live debate tab ──────────────────────────────────────────────────
 
-else:
-    st.subheader("Ask your board of directors")
-
+with tab_live:
     question = st.text_input(
         "Your question",
         placeholder="Should we raise a Series A or bootstrap?",
@@ -253,6 +225,7 @@ else:
         placeholder="Revenue $30k MRR, growing 15% m/m. 2 competing term sheets.",
         height=80,
     )
+
     col1, col2 = st.columns(2)
     with col1:
         department = st.selectbox(
@@ -261,58 +234,36 @@ else:
              "Finance", "Engineering", "Legal", "Operations", "Sales", "Creative"],
         )
     with col2:
-        rounds = st.selectbox("Debate Rounds", [1, 2, 3], index=0, help="Multi-round: agents see others' votes and revise")
-
-    # v0.5.0 features
-    feat_cols = st.columns(3)
-    with feat_cols[0]:
-        use_memory = st.checkbox("Semantic Memory", help="Store decisions with embeddings for future reference")
-    with feat_cols[1]:
-        use_tools = st.checkbox("Agent Tools", help="Let agents use calculator, ROI analysis, etc.")
-    with feat_cols[2]:
-        use_sports = st.checkbox("Sports Mode", help="Use 10 sports-specific agents instead of business agents")
-
-    # Template picker
-    template = st.selectbox(
-        "Use Template (optional)",
-        ["None", "hire", "pricing", "launch", "vendor", "pivot"],
-        help="Pre-built question formats for common decisions",
-    )
-
-    # Use server-side secret so visitors can test without their own key
-    default_key = st.secrets.get("DASHSCOPE_API_KEY", "")
-    has_default = bool(default_key)
-
-    if has_default:
-        st.success("API key provided — ready to debate. No key needed from you.")
-        api_key_override = st.text_input(
-            "Use your own API key instead (optional)",
-            type="password",
-            help="Leave blank to use the built-in key, or paste your own.",
+        provider = st.selectbox(
+            "AI Models",
+            ["dashscope", "openrouter"],
+            help="dashscope = Chinese models ($10/mo flat). openrouter = Western models (pay-per-use).",
         )
-        api_key = api_key_override.strip() if api_key_override else default_key
+
+    # API key handling
+    default_key = ""
+    try:
+        default_key = st.secrets.get("DASHSCOPE_API_KEY", "")
+        if provider == "openrouter":
+            default_key = st.secrets.get("OPENROUTER_API_KEY", "") or default_key
+    except Exception:
+        pass
+
+    if default_key:
+        st.success("API key configured — ready to debate.")
+        api_key = default_key
     else:
+        env_label = "OPENROUTER_API_KEY" if provider == "openrouter" else "ALIBABA_CODING_API_KEY"
         api_key = st.text_input(
-            "DashScope API Key",
+            f"{env_label}",
             type="password",
-            help="Get one at dashscope.console.aliyun.com — $10/mo flat for unlimited debates.",
+            help="Or try the Demo tab — no key needed.",
         )
 
     if st.button("Run Debate", type="primary", use_container_width=True):
-        final_question = question
-        final_context = context
-
-        # Handle template
-        if template and template != "None" and not question:
-            st.error("Templates need field values. Use the CLI: swarm-agency --template hire --candidate Jane --role CTO")
-            st.stop()
-
-        if not final_question:
+        if not question:
             st.error("Type a question first.")
         elif not api_key:
-            st.error("Paste your DashScope API key to run live debates. Or try a demo scenario in the sidebar.")
+            st.error("API key required for live debates. Try the Demo tab instead.")
         else:
-            _run_live_debate(
-                final_question, final_context, department, api_key,
-                rounds=rounds, memory=use_memory, sports_mode=use_sports,
-            )
+            _run_live(question, context, department, api_key, provider)

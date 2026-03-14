@@ -62,11 +62,16 @@ def decision_to_verdict(decision: Decision) -> Verdict:
     maybe_votes = []
     error_votes = 0
 
+    yes_terms = {"YES", "APPROVE", "APPROVED", "GO", "LAUNCH", "SHIP", "HIRE SENIOR",
+                  "ACCEPT", "PROCEED", "GREENLIGHT", "SUPPORT"}
+    no_terms = {"NO", "REJECT", "REJECTED", "STOP", "BLOCK", "DENY", "DECLINE",
+                "HIRE JUNIORS", "VETO", "OPPOSE"}
+
     for v in decision.votes:
-        pos = v.position.upper()
-        if pos in ("YES", "APPROVE", "GO", "LAUNCH", "SHIP", "HIRE SENIOR"):
+        pos = v.position.upper().strip()
+        if pos in yes_terms:
             yes_votes.append(v)
-        elif pos in ("NO", "REJECT", "STOP", "BLOCK"):
+        elif pos in no_terms:
             no_votes.append(v)
         elif pos == "ERROR":
             error_votes += 1
@@ -74,13 +79,20 @@ def decision_to_verdict(decision: Decision) -> Verdict:
             maybe_votes.append(v)
 
     # Determine clean answer
-    answer = decision.position.upper()
-    if answer in ("APPROVE", "GO", "LAUNCH", "SHIP"):
+    answer = decision.position.upper().strip()
+    if answer in yes_terms:
         answer = "YES"
-    elif answer in ("REJECT", "STOP", "BLOCK"):
+    elif answer in no_terms:
         answer = "NO"
     elif answer not in ("YES", "NO", "MAYBE"):
-        answer = "MAYBE"
+        # Check if it contains yes/no keywords
+        tokens = set(answer.replace("-", " ").split())
+        if tokens & {"YES", "APPROVE", "GO", "LAUNCH", "HIRE", "ACCEPT"}:
+            answer = "YES"
+        elif tokens & {"NO", "REJECT", "STOP", "BLOCK", "DENY"}:
+            answer = "NO"
+        else:
+            answer = "MAYBE"
 
     # Confidence label
     conf = decision.confidence
