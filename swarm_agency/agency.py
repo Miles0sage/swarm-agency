@@ -24,7 +24,7 @@ class Agency:
         memory_path: str | None = None,
     ):
         self.name = name
-        self.api_key = api_key or os.environ.get("ALIBABA_CODING_API_KEY", "")
+        self.api_key = (api_key or os.environ.get("ALIBABA_CODING_API_KEY", "")).strip()
         self.base_url = base_url or os.environ.get(
             "ALIBABA_CODING_BASE_URL",
             "https://coding-intl.dashscope.aliyuncs.com/v1",
