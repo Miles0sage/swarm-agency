@@ -79,8 +79,8 @@ def _render_debate(question: str, context: str, department: str, decision: Decis
     # Confidence bar
     st.progress(decision.confidence, text=f"Overall confidence: {decision.confidence:.0%}")
 
-    # Summary
-    st.markdown(f"**Summary:** {decision.summary}")
+    # Summary (escape $ to prevent LaTeX)
+    st.markdown(f"**Summary:** {decision.summary.replace('$', '&#36;')}", unsafe_allow_html=True)
     st.markdown("---")
 
     # Agent deliberation cards
@@ -124,8 +124,14 @@ def _render_debate(question: str, context: str, department: str, decision: Decis
         st.markdown("---")
         st.subheader("Dissenting Views")
         for view in decision.dissenting_views:
-            # Escape dollar signs to prevent Streamlit LaTeX rendering
-            st.warning(view.replace("$", "\\$"))
+            # Use HTML entity to fully prevent Streamlit LaTeX rendering
+            escaped = view.replace("$", "&#36;")
+            st.markdown(
+                f'<div style="background-color: #2d2000; border-left: 4px solid #eab308; '
+                f'padding: 12px 16px; border-radius: 4px; margin: 8px 0;">'
+                f'{escaped}</div>',
+                unsafe_allow_html=True,
+            )
 
 
 def _run_live_debate(question: str, context: str, department: str, api_key: str):
