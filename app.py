@@ -229,11 +229,24 @@ else:
          "Finance", "Engineering", "Legal", "Operations", "Sales", "Creative"],
     )
 
-    api_key = st.text_input(
-        "DashScope API Key",
-        type="password",
-        help="Get one at dashscope.console.aliyun.com — $10/mo flat for unlimited debates.",
-    )
+    # Use server-side secret so visitors can test without their own key
+    default_key = st.secrets.get("DASHSCOPE_API_KEY", "")
+    has_default = bool(default_key)
+
+    if has_default:
+        st.success("API key provided — ready to debate. No key needed from you.")
+        api_key_override = st.text_input(
+            "Use your own API key instead (optional)",
+            type="password",
+            help="Leave blank to use the built-in key, or paste your own.",
+        )
+        api_key = api_key_override.strip() if api_key_override else default_key
+    else:
+        api_key = st.text_input(
+            "DashScope API Key",
+            type="password",
+            help="Get one at dashscope.console.aliyun.com — $10/mo flat for unlimited debates.",
+        )
 
     if st.button("Run Debate", type="primary", use_container_width=True):
         if not question:
