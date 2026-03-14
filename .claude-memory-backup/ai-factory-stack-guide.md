@@ -122,7 +122,7 @@ wait
 |----------|------------|----------|
 | Anthropic | (Max plan, auto) | https://api.anthropic.com |
 | OpenAI | CODEX_API_KEY | https://api.openai.com/v1 |
-| Alibaba | ALIBABA_CODING_API_KEY=sk-sp-7424af93... | https://coding-intl.dashscope.aliyuncs.com/v1 |
+| Alibaba | ALIBABA_CODING_API_KEY=sk-sp-REDACTED | https://coding-intl.dashscope.aliyuncs.com/v1 |
 | MiniMax | MINIMAX_API_KEY=(get from platform.minimax.io) | https://api.minimax.io/v1 |
 
 **MiniMax also supports Anthropic protocol:** https://api.minimax.io/anthropic/v1
