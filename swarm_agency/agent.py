@@ -84,7 +84,7 @@ def _extract_json(text: str) -> dict:
         "factors": factors,
     }
 
-DEFAULT_TIMEOUT = 60.0
+DEFAULT_TIMEOUT = 90.0
 
 
 def format_agent_prompt(
@@ -113,8 +113,9 @@ def format_agent_prompt(
         f"Your analytical bias: {agent.bias}",
         "",
         "Your `position` MUST be exactly one of: YES, NO, or MAYBE.",
-        "Analyze this from your perspective and respond with ONLY valid JSON:",
-        '{"position": "YES | NO | MAYBE", "confidence": 0.0-1.0, "reasoning": "2-3 sentences", "factors": ["factor1", "factor2"], "dissent": "if you disagree with likely consensus, explain why"}',
+        "",
+        "IMPORTANT: Respond with ONLY a JSON object. No explanation before or after. No markdown. No thinking. Just the JSON:",
+        '{"position": "YES", "confidence": 0.85, "reasoning": "2-3 sentences max", "factors": ["factor1", "factor2"], "dissent": "only if you disagree"}',
     ])
     return "\n".join(lines)
 
@@ -139,6 +140,10 @@ async def call_agent(
         "max_tokens": 600,
     }
 
+    # Request JSON output format when the API supports it
+    if "openrouter" in base_url or "openai" in base_url:
+        payload["response_format"] = {"type": "json_object"}
+
     headers = {
         "Authorization": f"Bearer {api_key.strip()}",
         "Content-Type": "application/json",
@@ -156,11 +161,20 @@ async def call_agent(
             content = data["choices"][0]["message"]["content"].strip()
             parsed = _extract_json(content)
 
+            # Check if we got a real parse or fallback
+            reasoning = parsed.get("reasoning", "No reasoning provided")
+            if reasoning == "Response could not be parsed" and attempt == 0:
+                # Retry with explicit JSON-only instruction
+                logger.warning(f"{agent.name} returned unparseable response, retrying with strict prompt")
+                payload["messages"].append({"role": "assistant", "content": content})
+                payload["messages"].append({"role": "user", "content": 'Your response was not valid JSON. Reply with ONLY this JSON format, nothing else: {"position": "YES or NO or MAYBE", "confidence": 0.5, "reasoning": "your reason", "factors": ["f1"]}'})
+                continue
+
             return AgentVote(
                 agent_name=agent.name,
                 position=str(parsed.get("position", "ABSTAIN")).upper(),
                 confidence=max(0.0, min(1.0, float(parsed.get("confidence", 0.5)))),
-                reasoning=parsed.get("reasoning", "No reasoning provided"),
+                reasoning=reasoning,
                 factors=parsed.get("factors", []),
                 dissent=parsed.get("dissent"),
             )
