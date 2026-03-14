@@ -5,8 +5,9 @@ import logging
 import os
 from typing import Optional
 
-from .types import AgencyRequest, Decision
+from .types import AgencyRequest, Decision, DecisionRecord
 from .department import Department
+from .memory import DecisionMemoryStore, DEFAULT_MEMORY_PATH
 
 logger = logging.getLogger("swarm_agency.agency")
 
@@ -19,6 +20,8 @@ class Agency:
         name: str = "Agency",
         api_key: str | None = None,
         base_url: str | None = None,
+        memory_enabled: bool = False,
+        memory_path: str | None = None,
     ):
         self.name = name
         self.api_key = api_key or os.environ.get("ALIBABA_CODING_API_KEY", "")
@@ -27,6 +30,12 @@ class Agency:
             "https://coding-intl.dashscope.aliyuncs.com/v1",
         )
         self.departments: dict[str, Department] = {}
+        self.memory_enabled = memory_enabled
+        self._memory_store: Optional[DecisionMemoryStore] = None
+        if memory_enabled:
+            self._memory_store = DecisionMemoryStore(
+                db_path=memory_path or DEFAULT_MEMORY_PATH
+            )
 
     def add_department(self, department: Department) -> None:
         """Register a department with the agency."""
@@ -41,6 +50,24 @@ class Agency:
     def list_departments(self) -> list[str]:
         """Return list of department names."""
         return list(self.departments.keys())
+
+    @property
+    def memory_store(self) -> Optional[DecisionMemoryStore]:
+        """Access the memory store (if enabled)."""
+        return self._memory_store
+
+    def feedback(self, request_id: str, was_correct: bool, notes: Optional[str] = None) -> bool:
+        """Record feedback on a past decision."""
+        if not self._memory_store:
+            logger.warning("Memory not enabled — feedback ignored")
+            return False
+        return self._memory_store.add_feedback(request_id, was_correct, notes)
+
+    def history(self, department: Optional[str] = None, limit: int = 20) -> list[DecisionRecord]:
+        """Get decision history."""
+        if not self._memory_store:
+            return []
+        return self._memory_store.get_history(department, limit)
 
     async def consult(
         self,
@@ -60,7 +87,10 @@ class Agency:
             logger.warning("No departments to consult")
             return []
 
-        tasks = [dept.debate(request) for dept in target_depts]
+        tasks = [
+            dept.debate(request, memory_store=self._memory_store)
+            for dept in target_depts
+        ]
         decisions = await asyncio.gather(*tasks)
         return list(decisions)
 
@@ -88,9 +118,20 @@ class Agency:
             )
 
         if len(decisions) == 1:
-            return decisions[0]
+            decision = decisions[0]
+        else:
+            decision = self._synthesize(decisions, request)
 
-        return self._synthesize(decisions, request)
+        # Auto-store in memory
+        if self._memory_store:
+            try:
+                self._memory_store.store_decision(
+                    decision, request.question, request.context
+                )
+            except Exception as e:
+                logger.warning(f"Failed to store decision in memory: {e}")
+
+        return decision
 
     def _resolve_departments(
         self,

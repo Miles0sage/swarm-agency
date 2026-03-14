@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "swarm-agency"
-version = "0.2.0"
+version = "0.3.0"
 description = "43 AI personas across 10 departments — use as markdown rules or as a multi-model debate engine"
 readme = "README.md"
 license = "MIT"

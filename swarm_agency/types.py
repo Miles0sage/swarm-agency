@@ -87,3 +87,36 @@ class Decision:
             "duration_seconds": self.duration_seconds,
             "timestamp": self.timestamp,
         }
+
+
+@dataclass
+class DecisionRecord:
+    """A stored decision with optional feedback for institutional memory."""
+    request_id: str
+    question: str
+    context: Optional[str]
+    department: str
+    outcome: str
+    position: str
+    confidence: float
+    summary: str
+    votes_json: str  # JSON-serialized list of vote dicts
+    timestamp: float = field(default_factory=time.time)
+    feedback_correct: Optional[bool] = None
+    feedback_notes: Optional[str] = None
+    keywords: str = ""  # space-separated keywords for similarity matching
+
+    def to_dict(self) -> dict:
+        return {
+            "request_id": self.request_id,
+            "question": self.question,
+            "context": self.context,
+            "department": self.department,
+            "outcome": self.outcome,
+            "position": self.position,
+            "confidence": self.confidence,
+            "summary": self.summary,
+            "timestamp": self.timestamp,
+            "feedback_correct": self.feedback_correct,
+            "feedback_notes": self.feedback_notes,
+        }

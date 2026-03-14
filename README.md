@@ -170,6 +170,51 @@ swarm-agency uses **5 model families** (GLM, Qwen, Kimi, MiniMax) through one AP
 
 ---
 
+## Decision Memory
+
+Agents remember past decisions and learn from outcomes. Enable with `--memory`:
+
+```bash
+# Decisions are stored in SQLite and referenced in future debates
+swarm-agency "Should we expand to Europe?" --context "US revenue $2M" --memory
+
+# Record whether a past decision was correct
+swarm-agency --feedback cli-a1b2c3d4 yes
+
+# View decision history
+swarm-agency --history
+swarm-agency --history Finance --json
+```
+
+```python
+from swarm_agency import Agency, AgencyRequest, create_full_agency_departments
+
+agency = Agency(name="MyCo", memory_enabled=True)
+for dept in create_full_agency_departments():
+    agency.add_department(dept)
+
+# Decisions are auto-stored. Agents see relevant past decisions in their prompts.
+decision = asyncio.run(agency.decide(AgencyRequest(
+    request_id="002",
+    question="Should we expand to Europe?",
+    context="US revenue $2M ARR",
+)))
+
+# Record outcome feedback — agents learn from results
+agency.feedback("002", was_correct=True, notes="Europe launch successful")
+
+# View history
+for record in agency.history():
+    print(f"{record.question} → {record.position} (correct: {record.feedback_correct})")
+```
+
+When memory is enabled, each agent's prompt includes:
+- **Related past decisions** — similar questions the agency debated before, with outcomes
+- **Agent track record** — individual accuracy stats so agents can self-calibrate
+- **Outcome feedback** — which past decisions turned out correct or incorrect
+
+---
+
 ## Self-Improving Agents
 
 The `LearningEngine` tracks agent accuracy and evolves their prompts over time:

@@ -12,7 +12,11 @@ logger = logging.getLogger("swarm_agency.agent")
 DEFAULT_TIMEOUT = 60.0
 
 
-def format_agent_prompt(agent: AgentConfig, request: AgencyRequest) -> str:
+def format_agent_prompt(
+    agent: AgentConfig,
+    request: AgencyRequest,
+    memory_context: str = "",
+) -> str:
     """Format the user prompt for an agent given a request."""
     lines = [
         f"## Decision Required",
@@ -24,6 +28,9 @@ def format_agent_prompt(agent: AgentConfig, request: AgencyRequest) -> str:
     if request.metadata:
         for k, v in request.metadata.items():
             lines.append(f"**{k}:** {v}")
+
+    if memory_context:
+        lines.extend(["", memory_context])
 
     lines.extend([
         "",
@@ -42,9 +49,10 @@ async def call_agent(
     request: AgencyRequest,
     api_key: str,
     base_url: str,
+    memory_context: str = "",
 ) -> AgentVote:
     """Call API with an agent's system prompt and return an AgentVote."""
-    user_prompt = format_agent_prompt(agent, request)
+    user_prompt = format_agent_prompt(agent, request, memory_context)
 
     payload = {
         "model": agent.model,

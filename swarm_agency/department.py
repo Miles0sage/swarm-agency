@@ -3,9 +3,13 @@
 import asyncio
 import logging
 import time
+from typing import Optional, TYPE_CHECKING
 
 from .types import AgentConfig, AgencyRequest, AgentVote, Decision
 from .agent import call_agent
+
+if TYPE_CHECKING:
+    from .memory import DecisionMemoryStore
 
 logger = logging.getLogger("swarm_agency.department")
 
@@ -27,12 +31,32 @@ class Department:
         self.api_key = api_key
         self.base_url = base_url
 
-    async def debate(self, request: AgencyRequest) -> Decision:
+    async def debate(
+        self,
+        request: AgencyRequest,
+        memory_store: Optional["DecisionMemoryStore"] = None,
+    ) -> Decision:
         """Run all agents in parallel, tally positions, return a Decision."""
         start = time.time()
 
+        # Build per-agent memory context if memory is enabled
+        memory_contexts: dict[str, str] = {}
+        if memory_store:
+            from .memory import build_memory_context
+            similar = memory_store.find_similar(
+                request.question, request.context, limit=3
+            )
+            for agent in self.agents:
+                track = memory_store.get_agent_track_record(agent.name)
+                memory_contexts[agent.name] = build_memory_context(
+                    similar, track
+                )
+
         tasks = [
-            call_agent(agent, request, self.api_key, self.base_url)
+            call_agent(
+                agent, request, self.api_key, self.base_url,
+                memory_context=memory_contexts.get(agent.name, ""),
+            )
             for agent in self.agents
         ]
         votes: list[AgentVote] = await asyncio.gather(*tasks)

@@ -72,8 +72,81 @@ def main():
         metavar="SCENARIO",
         help="Run a pre-computed demo (no API key needed). Use --demo to list scenarios.",
     )
+    parser.add_argument(
+        "--memory", action="store_true",
+        help="Enable decision memory (stores decisions in SQLite for future reference)",
+    )
+    parser.add_argument(
+        "--feedback",
+        nargs=2,
+        metavar=("REQUEST_ID", "CORRECT"),
+        help="Record feedback: --feedback <request_id> yes|no",
+    )
+    parser.add_argument(
+        "--history",
+        nargs="?",
+        const="__all__",
+        metavar="DEPARTMENT",
+        help="Show decision history. Optionally filter by department.",
+    )
 
     args = parser.parse_args()
+
+    # Feedback mode
+    if args.feedback:
+        from .memory import DecisionMemoryStore
+        store = DecisionMemoryStore()
+        request_id, correct_str = args.feedback
+        was_correct = correct_str.lower() in ("yes", "true", "1", "correct")
+        if store.add_feedback(request_id, was_correct):
+            print(f"Feedback recorded for {request_id}: {'correct' if was_correct else 'incorrect'}")
+        else:
+            print(f"Decision {request_id} not found in memory.")
+            sys.exit(1)
+        store.close()
+        return
+
+    # History mode
+    if args.history is not None:
+        from .memory import DecisionMemoryStore
+        store = DecisionMemoryStore()
+        dept_filter = None if args.history == "__all__" else args.history
+        records = store.get_history(department=dept_filter)
+        store.close()
+        if not records:
+            print("No decisions in memory yet.")
+            return
+        if args.json:
+            print(json.dumps([r.to_dict() for r in records], indent=2))
+            return
+        try:
+            from rich.console import Console
+            from rich.table import Table
+            console = Console()
+            table = Table(title="Decision History")
+            table.add_column("ID", style="dim")
+            table.add_column("Question", max_width=40)
+            table.add_column("Dept", style="yellow")
+            table.add_column("Outcome")
+            table.add_column("Position", style="bold")
+            table.add_column("Correct?")
+            for r in records:
+                outcome_color = {"CONSENSUS": "green", "MAJORITY": "yellow", "SPLIT": "red"}.get(r.outcome, "white")
+                correct_str = "?" if r.feedback_correct is None else ("yes" if r.feedback_correct else "no")
+                table.add_row(
+                    r.request_id[:12],
+                    r.question[:40],
+                    r.department,
+                    f"[{outcome_color}]{r.outcome}[/]",
+                    r.position,
+                    correct_str,
+                )
+            console.print(table)
+        except ImportError:
+            for r in records:
+                correct_str = "?" if r.feedback_correct is None else ("yes" if r.feedback_correct else "no")
+                print(f"  {r.request_id[:12]}  {r.department:12s}  {r.outcome:10s}  {r.position:10s}  correct={correct_str}  {r.question[:50]}")
+        return
 
     # Demo mode
     if args.demo is not None:
@@ -89,12 +162,14 @@ def main():
             name="SwarmAgency",
             api_key=args.api_key,
             base_url=args.base_url,
+            memory_enabled=args.memory,
         )
         for dept in create_full_agency_departments():
             agency.add_department(dept)
 
+        import uuid
         request = AgencyRequest(
-            request_id="cli-001",
+            request_id=f"cli-{uuid.uuid4().hex[:8]}",
             question=args.question,
             context=args.context,
             department=args.department,
