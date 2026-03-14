@@ -132,7 +132,7 @@ def _run_live_debate(question: str, context: str, department: str, api_key: str)
 
     dept_filter = None if department == "All Departments" else department
 
-    agency = Agency(name="WebUI", api_key=api_key)
+    agency = Agency(name="WebUI", api_key=api_key.strip())
     for dept in create_full_agency_departments():
         agency.add_department(dept)
 
