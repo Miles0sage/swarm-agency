@@ -554,18 +554,32 @@ def _rebuild_agency(state):
     return agency
 
 
-def _check_api_key():
-    """Check if API key is configured. Return key or None."""
-    key = os.environ.get("ALIBABA_CODING_API_KEY", "").strip()
-    if key:
-        return key
+def _check_api_key(provider: str = "dashscope"):
+    """Check if API key is configured for the given provider. Return key or None."""
+    # Check provider-specific key first
+    if provider == "openrouter":
+        key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+        if key:
+            return key
+    else:
+        key = os.environ.get("ALIBABA_CODING_API_KEY", "").strip()
+        if key:
+            return key
+
+    # Try both keys as fallback
+    for env_var in ("ALIBABA_CODING_API_KEY", "OPENROUTER_API_KEY"):
+        key = os.environ.get(env_var, "").strip()
+        if key:
+            return key
+
     # Check .env file
     try:
         from dotenv import load_dotenv
         load_dotenv()
-        key = os.environ.get("ALIBABA_CODING_API_KEY", "").strip()
-        if key:
-            return key
+        for env_var in ("ALIBABA_CODING_API_KEY", "OPENROUTER_API_KEY"):
+            key = os.environ.get(env_var, "").strip()
+            if key:
+                return key
     except ImportError:
         pass
     return None
@@ -581,56 +595,30 @@ def run_chat(api_key=None, base_url=None, memory=False, department=None, provide
 
     _print_welcome(console)
 
-    # Check API key — offer setup wizard if missing
-    resolved_key = api_key or _check_api_key()
-    if not resolved_key:
-        if console:
-            console.print(
-                "  [yellow]No API key configured.[/]\n"
-                "  You need a DashScope Coding Plan ($10/mo) to run live debates.\n"
-            )
-            answer = console.input(
-                "  [bold]Set up your API key now? (Y/n):[/] "
-            ).strip().lower()
-        else:
-            print("  No API key configured.")
-            print("  You need a DashScope Coding Plan ($10/mo) to run live debates.\n")
-            answer = input("  Set up your API key now? (Y/n): ").strip().lower()
-
-        if answer in ("", "y", "yes"):
-            from .setup import run_setup
-            run_setup()
-            # Re-check after setup
-            resolved_key = _check_api_key()
-            if resolved_key:
-                if console:
-                    console.print()
-                else:
-                    print()
-            else:
-                if console:
-                    console.print(
-                        "\n  [dim]No key set. You can still use [bold]/demo[/] scenarios.[/]\n"
-                    )
-                else:
-                    print("\n  No key set. You can still use /demo scenarios.\n")
-        else:
-            if console:
-                console.print(
-                    "\n  [dim]Skipped. You can still use [bold]/demo[/] scenarios,\n"
-                    "  or run [bold]swarm-agency init[/] later.[/]\n"
-                )
-            else:
-                print("\n  Skipped. You can still use /demo scenarios.")
-                print("  Run 'swarm-agency init' later.\n")
-
-    # Load persistent settings, CLI args override saved settings
+    # Load persistent settings first so we know the provider
     saved = _load_settings()
     resolved_provider = provider or saved.get("provider", "dashscope")
 
-    # If provider is openrouter, check for that key instead
-    if resolved_provider == "openrouter" and not resolved_key:
-        resolved_key = os.environ.get("OPENROUTER_API_KEY", "").strip() or None
+    # Auto-detect provider from available keys
+    if not provider:
+        if os.environ.get("OPENROUTER_API_KEY", "").strip() and not os.environ.get("ALIBABA_CODING_API_KEY", "").strip():
+            resolved_provider = "openrouter"
+
+    # Check API key for the resolved provider
+    resolved_key = api_key or _check_api_key(resolved_provider)
+    if not resolved_key:
+        provider_name = "OpenRouter" if resolved_provider == "openrouter" else "DashScope"
+        env_var = "OPENROUTER_API_KEY" if resolved_provider == "openrouter" else "ALIBABA_CODING_API_KEY"
+        if console:
+            console.print(
+                f"  [yellow]No API key configured.[/]\n"
+                f"  Set [bold]{env_var}[/] or run [bold]swarm-agency init[/].\n"
+                f"  You can still use [bold]/demo[/] scenarios without a key.\n"
+            )
+        else:
+            print(f"  No API key configured.")
+            print(f"  Set {env_var} or run 'swarm-agency init'.")
+            print(f"  You can still use /demo scenarios without a key.\n")
 
     state = {
         "api_key": resolved_key or "",
