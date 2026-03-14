@@ -12,6 +12,14 @@ Cost: **$10/mo flat** (Alibaba DashScope Coding Plan) = unlimited debates.
 
 ### Try it now — no API key needed:
 
+**Web UI (non-technical):**
+```bash
+pip install swarm-agency[web]
+streamlit run app.py
+# Opens in your browser — click buttons, no terminal needed
+```
+
+**CLI (developers):**
 ```bash
 pip install swarm-agency[cli]
 swarm-agency --demo startup-pivot
@@ -25,76 +33,111 @@ swarm-agency --demo startup-pivot
 
 ---
 
-## Use Without Code (Copy & Paste)
+## Real-World Usage Flows
 
-No installation needed. Browse the [`agents/`](agents/) folder, copy any `.md` file into your AI tool's config:
+### Flow 1: "I just want quick advice" (2 minutes)
 
-| Tool | Where to put it |
-|------|----------------|
-| **Claude Code** | `.claude/agents/cfo.md` |
-| **Cursor** | Append to `.cursorrules` |
-| **Windsurf** | Append to `.windsurfrules` |
-| **Aider** | Reference in `.aider.conf.yml` |
-| **Gemini CLI** | Append to `GEMINI.md` |
-
-Or run the conversion scripts:
+**Option A — Web UI (no terminal skills needed):**
 
 ```bash
+pip install swarm-agency[web]
+streamlit run app.py
+```
+
+Opens a browser with clickable buttons — pick a scenario, see 5 AI agents debate it. No API key, no command line, no code.
+
+**Option B — Terminal:**
+
+```bash
+pip install swarm-agency[cli]
+swarm-agency --demo startup-pivot
+```
+
+5 built-in scenarios: `startup-pivot`, `hire-senior`, `pricing-change`, `open-source`, `remote-vs-office`.
+
+### Flow 2: "I want my own debates" (5 minutes)
+
+```bash
+# Get API key from Alibaba DashScope ($10/mo flat)
+export ALIBABA_CODING_API_KEY=your_key
+
+# Ask anything — 5 agents debate in parallel across 5 models
+swarm-agency "Should we raise a Series A or bootstrap?" \
+  --context "Revenue $30k MRR, growing 15% m/m. 2 competing term sheets."
+
+# Target a specific department
+swarm-agency "Should we open-source our SDK?" --department Engineering
+
+# Get JSON output for scripts/dashboards
+swarm-agency "Cut the marketing budget by 40%?" --json
+```
+
+### Flow 3: "I want institutional memory" (10 minutes)
+
+```bash
+# Enable memory — decisions get stored in SQLite
+swarm-agency "Should we hire a VP Sales?" \
+  --context "3 AEs, no manager. Pipeline growing." --memory
+
+# A week later, record whether it worked
+swarm-agency --feedback cli-a1b2c3d4 yes
+
+# Next time you ask a similar question, agents SEE the past decision
+# and adjust their confidence based on track record
+swarm-agency "Should we hire a VP Marketing?" \
+  --context "No marketing team yet." --memory
+
+# View full decision history
+swarm-agency --history
+swarm-agency --history Finance --json
+```
+
+### Flow 4: "I want AI personas in my editor" (1 minute)
+
+No Python needed. Just copy a persona file into your AI tool:
+
+```bash
+# Claude Code — drop the CFO persona into your project
+cp agents/finance/cfo.md .claude/agents/cfo.md
+
+# Cursor — append to your rules
+cat agents/strategy/chief-strategist.md >> .cursorrules
+
+# Or export all personas at once
 python scripts/export.py --format cursor --output-dir .
+python scripts/export.py --format claude --output-dir .claude/agents/
 ```
 
-Each persona file has YAML frontmatter (name, department, model, expertise, bias) and a full system prompt. They work standalone — no dependencies, no SDK.
+Now when you ask Claude/Cursor/Windsurf a business question, it answers **as that persona** — with the expertise, bias, and decision-making style baked in.
 
----
-
-## Use as Python SDK
-
-```bash
-pip install swarm-agency
-```
+### Flow 5: "I want to build on this" (Python SDK)
 
 ```python
 import asyncio
 from swarm_agency import Agency, AgencyRequest, create_full_agency_departments
 
-agency = Agency(name="MyCo")
+# Spin up all 43 agents across 10 departments
+agency = Agency(name="MyCo", memory_enabled=True)
 for dept in create_full_agency_departments():
     agency.add_department(dept)
 
+# Run a debate — all agents deliberate in parallel
 decision = asyncio.run(agency.decide(AgencyRequest(
-    request_id="001",
-    question="Should we launch the MVP this week or wait for the redesign?",
-    context="500 beta users. Competitor just raised $10M.",
+    request_id="q-001",
+    question="Should we acquire CompetitorX for $2M?",
+    context="They have 50k users, declining. Our product overlaps 60%.",
 )))
 
-print(decision.outcome)     # CONSENSUS | MAJORITY | SPLIT | DEADLOCK
-print(decision.position)    # The winning position
-print(decision.confidence)  # 0.0 - 1.0
+# Use the result
+print(decision.outcome)      # CONSENSUS | MAJORITY | SPLIT | DEADLOCK
+print(decision.position)     # APPROVE | REJECT | NEUTRAL
+print(decision.confidence)   # 0.0 - 1.0
+print(decision.summary)      # Human-readable summary
+print(decision.dissenting_views)  # What the minority thinks
+
+# Feed back outcomes to improve future debates
+agency.feedback("q-001", was_correct=True, notes="Acquisition went well")
 ```
-
-### CLI
-
-```bash
-pip install swarm-agency[cli]
-
-swarm-agency "Should we pivot to B2B?" --context "B2C growth is flat"
-swarm-agency "Hire a senior or two juniors?" --department Finance --json
-```
-
-### Try Without an API Key
-
-5 built-in demo scenarios with pre-computed debates — no API key needed:
-
-```bash
-swarm-agency --demo                    # List all scenarios
-swarm-agency --demo startup-pivot      # "Should we pivot from B2C to B2B?"
-swarm-agency --demo hire-senior        # "Hire one senior or two juniors?"
-swarm-agency --demo pricing-change     # "Switch to usage-based pricing?"
-swarm-agency --demo open-source        # "Open-source our core engine?"
-swarm-agency --demo remote-vs-office   # "Enforce return-to-office?"
-```
-
-Each demo shows the full debate: agent reasoning, confidence scores, vote tally, dissenting views — exactly like a live API run.
 
 ---
 
@@ -172,46 +215,13 @@ swarm-agency uses **5 model families** (GLM, Qwen, Kimi, MiniMax) through one AP
 
 ## Decision Memory
 
-Agents remember past decisions and learn from outcomes. Enable with `--memory`:
+See [Flow 3](#flow-3-i-want-institutional-memory-10-minutes) for usage. When `--memory` is enabled, each agent's prompt automatically includes:
 
-```bash
-# Decisions are stored in SQLite and referenced in future debates
-swarm-agency "Should we expand to Europe?" --context "US revenue $2M" --memory
-
-# Record whether a past decision was correct
-swarm-agency --feedback cli-a1b2c3d4 yes
-
-# View decision history
-swarm-agency --history
-swarm-agency --history Finance --json
-```
-
-```python
-from swarm_agency import Agency, AgencyRequest, create_full_agency_departments
-
-agency = Agency(name="MyCo", memory_enabled=True)
-for dept in create_full_agency_departments():
-    agency.add_department(dept)
-
-# Decisions are auto-stored. Agents see relevant past decisions in their prompts.
-decision = asyncio.run(agency.decide(AgencyRequest(
-    request_id="002",
-    question="Should we expand to Europe?",
-    context="US revenue $2M ARR",
-)))
-
-# Record outcome feedback — agents learn from results
-agency.feedback("002", was_correct=True, notes="Europe launch successful")
-
-# View history
-for record in agency.history():
-    print(f"{record.question} → {record.position} (correct: {record.feedback_correct})")
-```
-
-When memory is enabled, each agent's prompt includes:
 - **Related past decisions** — similar questions the agency debated before, with outcomes
 - **Agent track record** — individual accuracy stats so agents can self-calibrate
 - **Outcome feedback** — which past decisions turned out correct or incorrect
+
+Agents with poor track records automatically lower their confidence. Agents who've been consistently right become more assertive. The system self-calibrates over time.
 
 ---
 
