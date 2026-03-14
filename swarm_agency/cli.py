@@ -323,9 +323,12 @@ def _list_agents():
 
 # ── Live debate with progress ────────────────────────────────────────
 
-def _run_live_with_progress(question, context, department, api_key, base_url, memory):
+def _run_live_with_progress(question, context, department, api_key, base_url, memory, quiet=False):
     """Run a live debate with Rich progress display."""
     try:
+        if quiet:
+            raise ImportError("skip Rich for JSON output")
+
         from rich.console import Console
         from rich.live import Live
         from rich.spinner import Spinner
@@ -392,7 +395,8 @@ def _run_live_with_progress(question, context, department, api_key, base_url, me
             department=department,
         )
 
-        print("\nAgents deliberating...")
+        if not quiet:
+            print("\nAgents deliberating...")
         decision = asyncio.run(agency.decide(request))
         return decision
 
@@ -533,6 +537,7 @@ def main():
             api_key=args.api_key,
             base_url=args.base_url,
             memory=args.memory,
+            quiet=args.json,
         )
         mode_label = "Live"
 

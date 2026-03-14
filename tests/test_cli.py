@@ -1,7 +1,7 @@
 """Tests for CLI interface."""
 
 import json
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 
 from swarm_agency.types import AgentVote, Decision
 from swarm_agency.cli import main
@@ -26,10 +26,17 @@ def _mock_decision():
     )
 
 
+def _patch_agency_decide():
+    """Patch Agency.decide to return a mock Decision without real API calls."""
+    return patch(
+        "swarm_agency.cli.asyncio.run",
+        return_value=_mock_decision(),
+    )
+
+
 class TestCLIParsing:
     def test_basic_question(self, capsys):
-        with patch("swarm_agency.cli.asyncio") as mock_asyncio:
-            mock_asyncio.run.return_value = _mock_decision()
+        with _patch_agency_decide():
             with patch("sys.argv", ["swarm-agency", "Should we launch?", "--json"]):
                 main()
             output = capsys.readouterr().out
@@ -38,8 +45,7 @@ class TestCLIParsing:
             assert data["position"] == "YES"
 
     def test_department_filter(self, capsys):
-        with patch("swarm_agency.cli.asyncio") as mock_asyncio:
-            mock_asyncio.run.return_value = _mock_decision()
+        with _patch_agency_decide():
             with patch("sys.argv", [
                 "swarm-agency", "Hire?", "-d", "Finance", "--json"
             ]):
@@ -49,8 +55,7 @@ class TestCLIParsing:
             assert data["outcome"] == "CONSENSUS"
 
     def test_context_argument(self, capsys):
-        with patch("swarm_agency.cli.asyncio") as mock_asyncio:
-            mock_asyncio.run.return_value = _mock_decision()
+        with _patch_agency_decide():
             with patch("sys.argv", [
                 "swarm-agency", "Expand?", "--context", "Revenue growing", "--json"
             ]):
@@ -65,8 +70,7 @@ class TestCLIParsing:
             "Sales", "Creative",
         ]
         for dept in valid:
-            with patch("swarm_agency.cli.asyncio") as mock_asyncio:
-                mock_asyncio.run.return_value = _mock_decision()
+            with _patch_agency_decide():
                 with patch("sys.argv", [
                     "swarm-agency", "Test?", "-d", dept, "--json"
                 ]):
@@ -120,7 +124,7 @@ class TestCLIDemo:
         with patch("sys.argv", ["swarm-agency", "--demo", "open-source"]):
             main()
         output = capsys.readouterr().out
-        assert "QUESTION" in output or "AGENCY DECISION" in output
+        assert "QUESTION" in output or "SWARM AGENCY" in output
 
     def test_demo_all_scenarios_have_valid_decisions(self):
         from swarm_agency.demos import DEMO_SCENARIOS, DEMO_LIST
@@ -142,8 +146,7 @@ class TestCLIDemo:
 
 class TestCLIOutput:
     def test_json_output_structure(self, capsys):
-        with patch("swarm_agency.cli.asyncio") as mock_asyncio:
-            mock_asyncio.run.return_value = _mock_decision()
+        with _patch_agency_decide():
             with patch("sys.argv", ["swarm-agency", "Test?", "--json"]):
                 main()
             output = capsys.readouterr().out
@@ -154,12 +157,20 @@ class TestCLIOutput:
             assert "confidence" in data
 
     def test_plain_output_fallback(self, capsys):
-        with patch("swarm_agency.cli.asyncio") as mock_asyncio:
-            mock_asyncio.run.return_value = _mock_decision()
-            # Force ImportError for rich
-            with patch.dict("sys.modules", {"rich": None, "rich.console": None, "rich.table": None, "rich.panel": None}):
+        with _patch_agency_decide():
+            with patch.dict("sys.modules", {"rich": None, "rich.console": None, "rich.table": None, "rich.panel": None, "rich.columns": None, "rich.text": None, "rich.rule": None, "rich.box": None, "rich.live": None, "rich.spinner": None}):
                 with patch("sys.argv", ["swarm-agency", "Test?"]):
                     main()
                 output = capsys.readouterr().out
                 assert "CONSENSUS" in output
                 assert "YES" in output
+
+
+class TestCLIAgents:
+    def test_agents_flag(self, capsys):
+        with patch("sys.argv", ["swarm-agency", "--agents"]):
+            main()
+        output = capsys.readouterr().out
+        assert "43 agents" in output
+        assert "Strategy" in output
+        assert "Visionary" in output
