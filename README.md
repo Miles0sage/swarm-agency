@@ -149,11 +149,11 @@ agency.feedback("q-001", was_correct=True, notes="Acquisition went well")
 | **Product** (5) | UserAdvocate, TechLead, DesignThinker, DataDriven, ShipIt | glm-5, qwen3-coder-plus, glm-4.7, kimi-k2.5, qwen3-coder-next | User research, architecture, design, analytics |
 | **Marketing** (4) | BrandBuilder, ContentEngine, ViralMarketer, Skeptic | glm-5, qwen3.5-plus, MiniMax-M2.5, kimi-k2.5 | Brand, content, social, ROI analysis |
 | **Research** (4) | DeepDiver, TrendSpotter, Synthesizer, FactChecker | qwen3-coder-plus, glm-4.7, kimi-k2.5, qwen3.5-plus | Literature review, trends, synthesis, verification |
-| **Finance** (5) | CFO, RiskAnalyst, RevenueStrategist, TaxOptimizer, Auditor | glm-5, qwen3-max, kimi-k2.5, MiniMax-M2.5, qwen3-coder-plus | Financial planning, risk, revenue, compliance |
+| **Finance** (5) | CFO, RiskAnalyst, RevenueStrategist, TaxOptimizer, Auditor | glm-5, qwen3-coder-plus, kimi-k2.5, MiniMax-M2.5, qwen3-coder-plus | Financial planning, risk, revenue, compliance |
 | **Engineering** (5) | CTO, BackendLead, FrontendLead, DevOps, SecurityEngineer | qwen3-coder-next, glm-4.7, qwen3.5-plus, kimi-k2.5, glm-5 | Architecture, infrastructure, security |
-| **Legal** (4) | GeneralCounsel, IPAttorney, ComplianceOfficer, ContractReviewer | qwen3-max, glm-5, MiniMax-M2.5, kimi-k2.5 | Corporate law, IP, compliance, contracts |
+| **Legal** (4) | GeneralCounsel, IPAttorney, ComplianceOfficer, ContractReviewer | qwen3-coder-plus, glm-5, MiniMax-M2.5, kimi-k2.5 | Corporate law, IP, compliance, contracts |
 | **Operations** (4) | COO, SupplyChain, HRDirector, ProcessEngineer | glm-4.7, qwen3-coder-plus, MiniMax-M2.5, qwen3.5-plus | Execution, logistics, people, process |
-| **Sales** (4) | VPSales, AccountExecutive, SalesEngineer, CustomerSuccess | kimi-k2.5, qwen3-max, glm-5, qwen3-coder-plus | Pipeline, deals, demos, retention |
+| **Sales** (4) | VPSales, AccountExecutive, SalesEngineer, CustomerSuccess | kimi-k2.5, qwen3-coder-plus, glm-5, qwen3-coder-plus | Pipeline, deals, demos, retention |
 | **Creative** (3) | CreativeDirector, BrandStrategist, ContentLead | MiniMax-M2.5, qwen3.5-plus, glm-4.7 | Visual identity, brand, content strategy |
 
 ---
@@ -207,7 +207,7 @@ swarm-agency uses **5 model families** (GLM, Qwen, Kimi, MiniMax) through one AP
 | Model Family | Models Used | Strengths |
 |---|---|---|
 | **GLM** (Zhipu) | glm-4.7, glm-5 | Strong reasoning, balanced |
-| **Qwen** (Alibaba) | qwen3.5-plus, qwen3-coder-plus, qwen3-coder-next, qwen3-max | Fast, code-aware, analytical |
+| **Qwen** (Alibaba) | qwen3.5-plus, qwen3-coder-plus, qwen3-coder-next, qwen3-coder-plus | Fast, code-aware, analytical |
 | **MiniMax** | MiniMax-M2.5 | Creative, contrarian thinking |
 | **Kimi** (Moonshot) | kimi-k2.5 | Deep analysis, long context |
 

@@ -279,7 +279,7 @@ FINANCE_AGENTS = [
             "risk modeling, scenario analysis, hedging strategies, compliance risk",
             "quantifies downside before upside, assumes worst case",
         ),
-        model="qwen3-max",
+        model="qwen3-coder-plus",
     ),
     AgentConfig(
         name="RevenueStrategist",
@@ -397,7 +397,7 @@ LEGAL_AGENTS = [
             "corporate law, regulatory compliance, risk mitigation, contract strategy",
             "protect the company first, enable the business second",
         ),
-        model="qwen3-max",
+        model="qwen3-coder-plus",
     ),
     AgentConfig(
         name="IPAttorney",
@@ -515,7 +515,7 @@ SALES_AGENTS = [
             "enterprise sales, deal negotiation, stakeholder mapping, objection handling",
             "understand the buyer's pain before pitching the solution",
         ),
-        model="qwen3-max",
+        model="qwen3-coder-plus",
     ),
     AgentConfig(
         name="SalesEngineer",
