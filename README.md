@@ -91,6 +91,22 @@ Shows side-by-side comparison with combined verdict:
 
 ---
 
+## Interactive Chat Mode
+
+```bash
+swarm-agency chat
+```
+
+Ask questions, see verdicts, dig into transcripts — all in one session:
+
+<p align="center">
+  <img src="chat-demo.svg" alt="swarm-agency chat mode with /last and /verbose commands" width="700">
+</p>
+
+Key commands: `/last` (full transcript), `/verbose` (always show debate), `/dual` (Chinese + Western models), `/dept Finance` (focus department), `/memory on` (remember past decisions).
+
+---
+
 ## API Server
 
 ```bash
