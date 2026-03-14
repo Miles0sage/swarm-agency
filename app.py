@@ -94,11 +94,13 @@ def _render_debate(question: str, context: str, department: str, decision: Decis
         pos_emoji = {"APPROVE": "👍", "REJECT": "👎", "NEUTRAL": "🤷"}.get(vote.position, "❓")
 
         with st.container():
+            # Escape dollar signs to prevent Streamlit LaTeX rendering
+            reasoning = vote.reasoning.replace("$", "&#36;")
             st.markdown(
                 f'<div class="agent-card {pos_class}">'
                 f'<strong>{vote.agent_name}</strong> · {pos_emoji} {vote.position} · '
                 f'Confidence: {vote.confidence:.0%}'
-                f'<br><span style="color: #888;">{vote.reasoning}</span>'
+                f'<br><span style="color: #888;">{reasoning}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -122,7 +124,8 @@ def _render_debate(question: str, context: str, department: str, decision: Decis
         st.markdown("---")
         st.subheader("Dissenting Views")
         for view in decision.dissenting_views:
-            st.warning(view)
+            # Escape dollar signs to prevent Streamlit LaTeX rendering
+            st.warning(view.replace("$", "\\$"))
 
 
 def _run_live_debate(question: str, context: str, department: str, api_key: str):
